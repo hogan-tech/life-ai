@@ -1,71 +1,138 @@
 # life-ai
 
-**Turn any idea into a living AI world in one command.**
+**Turn any idea into a living AI world — in one command.**
 
-life-ai takes a short idea string and generates a cast of characters with distinct personalities, goals, and relationships — then simulates how they interact over multiple rounds.
+life-ai takes a single idea and turns it into a cast of characters with conflicting goals, then simulates how they evolve over time.
 
-> Current state: MVP with mock world generation and mock dialogue. LLM-powered simulation coming next.
+Not just text generation.  
+**Agents. Roles. Conflict. Story.**
+
+> Current state: MVP (rule-based simulation). LLM-powered agents coming next.
+
+---
+
+## Why life-ai?
+
+Most AI tools are one-shot:
+> input → output
+
+life-ai is different:
+
+> input → world → agents → conflict → evolution
+
+Each run creates:
+- a world
+- multiple agents
+- different roles & incentives
+- and emergent behavior over time
+
+---
+
+## Demo
+
+```bash
+python -m life_ai.main "Harvard students building a startup" --rounds 5
+```
+
+```
+Harvard students building a startup
+
+────────────────────────────────────────────────── Day 1 ──────────────────────────────────────────────────
+  The pitch begins.
+
+  Maya      Founder-CEO, Running Out of TimeMaya lays out the vision: close series a before runway hits 3 
+months.
+  Ethan     Co-Founder, Will Not Ship Broken CodeEthan opens a doc and starts listing what's wrong.
+
+────────────────────────────────────────────────── Day 2 ──────────────────────────────────────────────────
+  The numbers don't add up.
+
+  Ethan     Co-Founder, Will Not Ship Broken CodeEthan refuses to sign off. Not yet. Not like this.
+  Jordan    Lead Investor, Already Losing PatienceJordan quietly shifts position when the numbers change.
+
+────────────────────────────────────────────────── Day 3 ──────────────────────────────────────────────────
+  Everyone snaps.
+
+  Jordan    Lead Investor, Already Losing PatienceJordan makes a backroom offer. It's not subtle.
+  Priya     Head of Design, Only Adult in the RoomPriya says it out loud — 'This isn't what we said we 
+stood for.'
+  Maya      Founder-CEO, Running Out of TimeMaya goes all-in: 'If we don't move now, we lose everything.'
+
+────────────────────────────────────────────────── Day 4 ──────────────────────────────────────────────────
+  The damage lands.
+
+  Priya     Head of Design, Only Adult in the RoomPriya realizes the ideal version isn't happening.
+  Maya      Founder-CEO, Running Out of TimeMaya doubles down. The room gets quieter.
+
+────────────────────────────────────────────────── Day 5 ──────────────────────────────────────────────────
+  Ship it or kill it.
+
+  Maya      Founder-CEO, Running Out of TimeMaya reframes the loss as a pivot. Not everyone buys it.
+  Ethan     Co-Founder, Will Not Ship Broken CodeEthan extracts one promise before signing off.
+```
 
 ---
 
 ## Installation
 
 ```bash
-git clone https://github.com/your-org/life-ai.git
+git clone https://github.com/hogan-tech/life-ai.git
 cd life-ai
+
 python -m venv .venv
 source .venv/bin/activate
+
 pip install -r requirements.txt
-cp .env.example .env  # add your ANTHROPIC_API_KEY when ready
-```
-
-## Usage
-
-```bash
-python -m life_ai.main "<your idea>" --rounds <n>
-```
-
-## Demo
-
-```bash
-python -m life_ai.main "AI startup drama" --rounds 2
-```
-
-```
-Simulating: AI startup drama
-
-────────────────── Round 1 ──────────────────
-Maya  (CEO)              [visionary] We need to talk about secure series a funding before runway runs out.
-Ethan (CTO)              [perfectionist] We need to talk about ship reliable software without cutting corners.
-Priya (Head of Product)  [pragmatic] We need to talk about keep the team aligned and users happy.
-
-────────────────── Round 2 ──────────────────
-Maya  (CEO)              [visionary] Ethan, you're missing the point entirely.
-Ethan (CTO)              [perfectionist] Maya, you're missing the point entirely.
-Priya (Head of Product)  [pragmatic] I've thought about it — keep the team aligned and users happy. That's final.
+cp .env.example .env
 ```
 
 ---
 
-## Project Vision
+## Usage
 
-Most AI demos are one-shot: ask a question, get an answer. life-ai is different — it creates a persistent world with characters who have competing goals, histories, and relationships. Feed it any premise and watch the drama unfold.
+```bash
+python -m life_ai.main "<your idea>" --rounds 3
+```
 
-The end goal: a multi-agent simulation engine where each character is powered by a real LLM, remembers past events, and drives the story forward autonomously.
+---
+
+## Try these
+
+```bash
+python -m life_ai.main "Harvard students building a startup"
+python -m life_ai.main "Elon Musk vs OpenAI board"
+python -m life_ai.main "Pirates running a tech company"
+```
+
+---
+
+## What this is (and isn't)
+
+This is:
+- a multi-agent simulation prototype
+- a system for generating structured conflict
+- a foundation for LLM-driven worlds
+
+This is NOT (yet):
+- a fully autonomous AI system
+- a persistent simulation
+- powered by real LLM reasoning (coming soon)
 
 ---
 
 ## Roadmap
 
-- [x] CLI entry point with `typer` + `rich` output
-- [x] Mock world generation from an idea string
-- [x] Mock multi-round dialogue simulation
-- [x] LLM client abstraction (`life_ai/llm.py`)
-- [ ] LLM-powered world generation via Anthropic API
-- [ ] LLM-powered per-agent dialogue
+- [x] CLI simulation engine
+- [x] World generation from idea string
+- [x] Multi-round structured interactions
+- [x] Role-driven agent behavior
+
+Next:
+- [ ] LLM-powered agents (Anthropic / OpenAI)
 - [ ] Agent memory across rounds
-- [ ] Persistent world state (save/load)
-- [ ] Web UI
+- [ ] Persistent worlds (save/load)
+- [ ] Web interface
+- [ ] Multi-language support
 
 ---
 
@@ -74,19 +141,28 @@ The end goal: a multi-agent simulation engine where each character is powered by
 ```
 life_ai/
 ├── main.py        # CLI entry point
-├── simulator.py   # Orchestration loop
-├── world.py       # World generation
-├── agent.py       # Agent data model
-├── llm.py         # LLM client abstraction
-├── prompts.py     # Prompt templates (stub)
-└── utils.py       # Shared helpers (stub)
+├── simulator.py   # Simulation loop
+├── world.py       # World generation logic
+├── agent.py       # Agent models
+├── llm.py         # LLM abstraction
+├── prompts.py     # Prompt templates
+└── utils.py       # Helpers
 ```
 
 ---
 
 ## Contributing
 
-PRs welcome. Open an issue first for anything beyond small fixes.
+PRs welcome.
+
+If you have ideas for:
+- new world types
+- better agent behavior
+- more dramatic simulations
+
+open an issue or submit a PR.
+
+---
 
 ## License
 
