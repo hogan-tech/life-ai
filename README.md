@@ -28,7 +28,7 @@ python -m life_ai.main "<your idea>" --rounds <n>
 ## Demo
 
 ```bash
-python -m life_ai.main "AI startup drama" --rounds 3
+python -m life_ai.main "AI startup drama" --rounds 2
 ```
 
 ```
