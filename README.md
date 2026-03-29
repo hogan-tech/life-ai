@@ -2,127 +2,112 @@
 
 **Turn any idea into a living AI world — in one command.**
 
-life-ai takes a single idea and turns it into a cast of characters with conflicting goals, then simulates how they evolve over time.
+life-ai takes a single idea and generates a cast of characters with conflicting goals, then simulates how they clash over multiple rounds.
 
-Not just text generation.  
-**Agents. Roles. Conflict. Story.**
+Not just text generation. **Agents. Roles. Conflict. Story.**
 
 > Current state: MVP (rule-based simulation). LLM-powered agents coming next.
 
 ---
 
-## Why life-ai?
-
-Most AI tools are one-shot:
-> input → output
-
-life-ai is different:
-
-> input → world → agents → conflict → evolution
-
-Each run creates:
-- a world
-- multiple agents
-- different roles & incentives
-- and emergent behavior over time
-
----
-
-## Demo
-
-```bash
-python -m life_ai.main "Harvard students building a startup" --rounds 5
-```
-
-```
-Harvard students building a startup
-
-────────────────────────────────────────────────── Day 1 ──────────────────────────────────────────────────
-  The pitch begins.
-
-  Maya      Founder-CEO, Running Out of TimeMaya lays out the vision: close series a before runway hits 3 
-months.
-  Ethan     Co-Founder, Will Not Ship Broken CodeEthan opens a doc and starts listing what's wrong.
-
-────────────────────────────────────────────────── Day 2 ──────────────────────────────────────────────────
-  The numbers don't add up.
-
-  Ethan     Co-Founder, Will Not Ship Broken CodeEthan refuses to sign off. Not yet. Not like this.
-  Jordan    Lead Investor, Already Losing PatienceJordan quietly shifts position when the numbers change.
-
-────────────────────────────────────────────────── Day 3 ──────────────────────────────────────────────────
-  Everyone snaps.
-
-  Jordan    Lead Investor, Already Losing PatienceJordan makes a backroom offer. It's not subtle.
-  Priya     Head of Design, Only Adult in the RoomPriya says it out loud — 'This isn't what we said we 
-stood for.'
-  Maya      Founder-CEO, Running Out of TimeMaya goes all-in: 'If we don't move now, we lose everything.'
-
-────────────────────────────────────────────────── Day 4 ──────────────────────────────────────────────────
-  The damage lands.
-
-  Priya     Head of Design, Only Adult in the RoomPriya realizes the ideal version isn't happening.
-  Maya      Founder-CEO, Running Out of TimeMaya doubles down. The room gets quieter.
-
-────────────────────────────────────────────────── Day 5 ──────────────────────────────────────────────────
-  Ship it or kill it.
-
-  Maya      Founder-CEO, Running Out of TimeMaya reframes the loss as a pivot. Not everyone buys it.
-  Ethan     Co-Founder, Will Not Ship Broken CodeEthan extracts one promise before signing off.
-```
-
----
-
-## Installation
+## Try it in 30 seconds
 
 ```bash
 git clone https://github.com/hogan-tech/life-ai.git
 cd life-ai
-
-python -m venv .venv
-source .venv/bin/activate
-
+python -m venv .venv && source .venv/bin/activate
 pip install -e .
-cp .env.example .env
-```
 
----
-
-## Usage
-
-After install:
-```bash
-life-ai "<your idea>" --rounds 3
-```
-
-Or without installing:
-```bash
-python -m life_ai.main "<your idea>" --rounds 3
-```
-
----
-
-## Try these
-
-```bash
-life-ai "Harvard students building a startup"
-life-ai "Board fires the founder-CEO"
 life-ai "Pirates running a tech company"
 ```
 
 ---
 
-## What this is (and isn't)
+## Demo
 
-This is:
-- a multi-agent simulation prototype
-- a system for generating structured conflict
-- a foundation for LLM-driven worlds
+```
+Pirates running a tech company
 
-This is NOT (yet):
-- a fully autonomous AI system
-- a persistent simulation
-- powered by real LLM reasoning (coming soon)
+──────────────────────────── Day 1 ────────────────────────────
+  The ship sails.
+
+  Captain Redd   Captain, Hiding Something About the Map
+  Captain Redd plants the map on the table: 'We sail at dawn or we rot in port.'
+
+  Bones          Navigator, Loyal Until Proven Wrong
+  Bones studies the stars and says the heading is wrong.
+
+──────────────────────────── Day 2 ────────────────────────────
+  The map is questioned.
+
+  Yara           Quartermaster, Already Skimming the Treasury
+  Yara quietly moves something from the hold to their own quarters.
+
+  Finn           Crew Agitator, One Speech Away from Mutiny
+  Finn starts asking why the captain eats while the crew doesn't.
+
+──────────────────────────── Day 3 ────────────────────────────
+  Steel is drawn.
+
+  Captain Redd   Captain, Hiding Something About the Map
+  Captain Redd draws steel: 'I said Port Null. Anyone disagree says it to my face.'
+
+  Bones          Navigator, Loyal Until Proven Wrong
+  Bones refuses to navigate further until someone explains the map.
+
+  Yara           Quartermaster, Already Skimming the Treasury
+  Yara offers the crew a cut. It's coming out of someone else's share.
+```
+
+---
+
+## Try these ideas
+
+```bash
+life-ai "Board fires the founder-CEO"
+life-ai "Harvard students building a startup"
+life-ai "Elon Musk vs OpenAI board"
+life-ai "Ancient Rome with AI agents"
+```
+
+---
+
+## Why life-ai?
+
+Most AI tools are one-shot: `input → output`
+
+life-ai is different: `input → world → agents → conflict → evolution`
+
+Each run creates:
+- A setting and central conflict
+- 4 agents with distinct roles, personalities, and goals
+- Multi-round drama where not everyone agrees
+
+---
+
+## Usage
+
+```bash
+# after install
+life-ai "<your idea>" --rounds 5
+
+# or without installing
+python -m life_ai.main "<your idea>" --rounds 5
+```
+
+---
+
+## What this is
+
+- A multi-agent simulation prototype
+- A system for generating structured conflict from any idea
+- A foundation for LLM-driven worlds
+
+## What this is not (yet)
+
+- Powered by a real LLM (coming next)
+- Persistent across sessions
+- A web app
 
 ---
 
@@ -130,43 +115,37 @@ This is NOT (yet):
 
 - [x] CLI simulation engine
 - [x] World generation from idea string
-- [x] Multi-round structured interactions
-- [x] Role-driven agent behavior
-
-Next:
+- [x] Role-driven agent behavior with personality signals
+- [x] Multi-round dramatic arc
+- [x] Installable as a package (`pip install -e .`)
 - [ ] LLM-powered agents (Anthropic / OpenAI)
 - [ ] Agent memory across rounds
-- [ ] Persistent worlds (save/load)
+- [ ] Persistent world state (save / load)
 - [ ] Web interface
-- [ ] Multi-language support
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 life_ai/
 ├── main.py        # CLI entry point
-├── simulator.py   # Simulation loop
-├── world.py       # World generation logic
-├── agent.py       # Agent models
-├── llm.py         # LLM abstraction
-├── prompts.py     # Prompt templates
-└── utils.py       # Helpers
+├── simulator.py   # Simulation loop and arc structure
+├── world.py       # World + agent generation
+├── agent.py       # Agent model and act() logic
+├── llm.py         # LLM client abstraction (Anthropic-ready)
+├── prompts.py     # Prompt templates (stub)
+└── utils.py       # Shared helpers (stub)
 ```
 
 ---
 
 ## Contributing
 
-PRs welcome.
-
-If you have ideas for:
-- new world types
-- better agent behavior
-- more dramatic simulations
-
-open an issue or submit a PR.
+PRs welcome. Ideas that would make great contributions:
+- New world templates (fantasy, sports, space, politics)
+- More personality-driven dialogue patterns
+- LLM integration via `llm.py`
 
 ---
 
