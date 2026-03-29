@@ -82,7 +82,7 @@ cd life-ai
 python -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -e .
 cp .env.example .env
 ```
 
@@ -90,6 +90,12 @@ cp .env.example .env
 
 ## Usage
 
+After install:
+```bash
+life-ai "<your idea>" --rounds 3
+```
+
+Or without installing:
 ```bash
 python -m life_ai.main "<your idea>" --rounds 3
 ```
@@ -99,9 +105,9 @@ python -m life_ai.main "<your idea>" --rounds 3
 ## Try these
 
 ```bash
-python -m life_ai.main "Harvard students building a startup"
-python -m life_ai.main "Elon Musk vs OpenAI board"
-python -m life_ai.main "Pirates running a tech company"
+life-ai "Harvard students building a startup"
+life-ai "Board fires the founder-CEO"
+life-ai "Pirates running a tech company"
 ```
 
 ---

@@ -59,5 +59,9 @@ def main(
         console.print()
 
 
+def run() -> None:
+    app()
+
+
 if __name__ == "__main__":
     app()
