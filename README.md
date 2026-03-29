@@ -15,7 +15,7 @@ life-ai turns a simple idea into a multi-agent simulation with distinct characte
 
 ---
 
-## G. 第一版 `.env.example`
+## first version `.env.example`
 
 ```env
 ANTHROPIC_API_KEY=your_key_here
