@@ -6,7 +6,16 @@ life-ai takes a single idea and generates a cast of characters with conflicting 
 
 Not just text generation. **Agents. Roles. Conflict. Story.**
 
-> Current state: MVP (rule-based simulation). LLM-powered agents coming next.
+> Current state: MVP → transitioning into LLM-powered multi-agent simulation.
+
+---
+
+## What's New
+
+- LLM-powered dialogue (Anthropic-ready)
+- Strong prompt constraints → sharper output
+- Post-processing (_trim) for clean, punchy lines
+- Reduced verbosity, more cinematic storytelling
 
 ---
 
@@ -18,50 +27,118 @@ cd life-ai
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-life-ai "Pirates running a tech company"
+life-ai "Pirates running a tech company" --rounds 3 --debug
 ```
 
 ---
 
-## Demo
+## Demo (LLM Mode)
 
 ```
-Pirates running a tech company
+Day 1 — The ship sails.
 
-──────────────────────────── Day 1 ────────────────────────────
-  The ship sails.
+We sail at first light — Port Null or nothing.
+That heading puts us on the rocks by morning.
+I've already counted the shares. Mine first, questions later.
 
-  Captain Redd   Captain, Hiding Something About the Map
-  Captain Redd plants the map on the table: 'We sail at dawn or we rot in port.'
+Day 2 — The map is questioned.
 
-  Bones          Navigator, Loyal Until Proven Wrong
-  Bones studies the stars and says the heading is wrong.
+Show the map or we stop the ship.
+The numbers don’t lie — we’re bleeding.
+You want trust? Start with the truth.
 
-──────────────────────────── Day 2 ────────────────────────────
-  The map is questioned.
+Day 3 — Steel is drawn.
 
-  Yara           Quartermaster, Already Skimming the Treasury
-  Yara quietly moves something from the hold to their own quarters.
-
-  Finn           Crew Agitator, One Speech Away from Mutiny
-  Finn starts asking why the captain eats while the crew doesn't.
-
-──────────────────────────── Day 3 ────────────────────────────
-  Steel is drawn.
-
-  Captain Redd   Captain, Hiding Something About the Map
-  Captain Redd draws steel: 'I said Port Null. Anyone disagree says it to my face.'
-
-  Bones          Navigator, Loyal Until Proven Wrong
-  Bones refuses to navigate further until someone explains the map.
-
-  Yara           Quartermaster, Already Skimming the Treasury
-  Yara offers the crew a cut. It's coming out of someone else's share.
+Ask nicely, or I drop the map overboard.
+Then drop it — we’ll chart our own course.
+Fine. But we count the take together.
 ```
 
 ---
 
-## Try these ideas
+## Core Idea
+
+Most AI tools are one-shot:
+
+input → output
+
+life-ai is a system:
+
+input → world → agents → conflict → evolution
+
+Each run creates:
+- A setting and central conflict
+- 4 agents with roles, personalities, goals
+- Multi-round interactions
+- Emergent narrative
+
+---
+
+## Usage
+
+```bash
+life-ai "<your idea>" --rounds 5 --debug
+```
+
+or
+
+```bash
+python -m life_ai.main "<your idea>" --rounds 5
+```
+
+---
+
+## Prompt Design (Key Upgrade)
+
+We moved from vague prompts → constrained prompts:
+
+- Max 2 sentences
+- ≤ 35 words
+- Strong action / direct speech only
+- Rival surfaced explicitly
+
+Result:
+- Less fluff  
+- More tension  
+- Better character voice  
+
+---
+
+## Post-processing (_trim)
+
+Every LLM output is cleaned:
+
+- Keep max 2 sentences
+- Enforce word limit (~40 words hard cap)
+- Remove quotes / noise
+- Ensure clean punctuation
+
+---
+
+## Project Structure
+
+```
+life_ai/
+├── main.py
+├── simulator.py
+├── world.py
+├── agent.py
+├── llm.py
+├── prompts.py
+└── utils.py
+```
+
+---
+
+## Environment Setup (LLM)
+
+Create `.env`:
+
+ANTHROPIC_API_KEY=your_api_key_here
+
+---
+
+## Try These Ideas
 
 ```bash
 life-ai "Board fires the founder-CEO"
@@ -72,80 +149,35 @@ life-ai "Ancient Rome with AI agents"
 
 ---
 
-## Why life-ai?
-
-Most AI tools are one-shot: `input → output`
-
-life-ai is different: `input → world → agents → conflict → evolution`
-
-Each run creates:
-- A setting and central conflict
-- 4 agents with distinct roles, personalities, and goals
-- Multi-round drama where not everyone agrees
-
----
-
-## Usage
-
-```bash
-# after install
-life-ai "<your idea>" --rounds 5
-
-# or without installing
-python -m life_ai.main "<your idea>" --rounds 5
-```
-
----
-
-## What this is
-
-- A multi-agent simulation prototype
-- A system for generating structured conflict from any idea
-- A foundation for LLM-driven worlds
-
-## What this is not (yet)
-
-- Powered by a real LLM (coming next)
-- Persistent across sessions
-- A web app
-
----
-
 ## Roadmap
 
 - [x] CLI simulation engine
-- [x] World generation from idea string
-- [x] Role-driven agent behavior with personality signals
-- [x] Multi-round dramatic arc
-- [x] Installable as a package (`pip install -e .`)
-- [ ] LLM-powered agents (Anthropic / OpenAI)
-- [ ] Agent memory across rounds
-- [ ] Persistent world state (save / load)
-- [ ] Web interface
-
----
-
-## Project structure
-
-```
-life_ai/
-├── main.py        # CLI entry point
-├── simulator.py   # Simulation loop and arc structure
-├── world.py       # World + agent generation
-├── agent.py       # Agent model and act() logic
-├── llm.py         # LLM client abstraction (Anthropic-ready)
-├── prompts.py     # Prompt templates (stub)
-└── utils.py       # Shared helpers (stub)
-```
+- [x] Multi-agent system
+- [x] LLM-powered dialogue
+- [x] Prompt optimization
+- [x] Output post-processing
+- [ ] Agent memory
+- [ ] Relationship evolution
+- [ ] Persistent world state
+- [ ] Web UI
+- [ ] API / SDK
 
 ---
 
 ## Contributing
 
-PRs welcome. Ideas that would make great contributions:
-- New world templates (fantasy, sports, space, politics)
-- More personality-driven dialogue patterns
-- LLM integration via `llm.py`
+PRs welcome. High-impact areas:
+- Agent intelligence
+- Prompt tuning
+- Memory systems
+- UI / visualization
+
+---
+
+## Philosophy
+
+This is not a story generator.  
+It's a system where characters conflict, adapt, and evolve.
 
 ---
 
