@@ -1,5 +1,7 @@
 from life_ai.agent import Agent
 from life_ai.world import World, generate_world
+import life_ai.llm as llm
+from life_ai.prompts import agent_line_prompt
 
 # ---------------------------------------------------------------------------
 # Arc structure
@@ -209,7 +211,7 @@ _THEME_OVERRIDES: dict[str, dict[str, dict[str, str]]] = {
 }
 
 
-def _line(agent: Agent, beat: str, theme: str) -> str:
+def _rule_based_line(agent: Agent, beat: str, theme: str) -> str:
     trait = agent.personality.split(",")[0].strip().lower()
     theme_beats = _THEME_OVERRIDES.get(theme, {}).get(beat, {})
     default_beats = _DEFAULT_LINES.get(beat, {})
@@ -221,28 +223,77 @@ def _line(agent: Agent, beat: str, theme: str) -> str:
     return template.format(name=agent.name, goal=agent.goal.lower(), rival=rival)
 
 
+_MAX_WORDS = 40
+
+
+def _trim(text: str) -> str:
+    """Keep the first 1–2 sentences and enforce a word cap."""
+    text = text.strip().strip('"').strip()
+    # Take at most 2 sentences
+    sentences: list[str] = []
+    for part in text.replace("! ", ". ").replace("? ", ". ").split(". "):
+        part = part.strip()
+        if not part:
+            continue
+        sentences.append(part)
+        if len(sentences) == 2:
+            break
+    clipped = ". ".join(sentences)
+    if not clipped.endswith((".", "!", "?")):
+        clipped += "."
+    # Hard word cap
+    words = clipped.split()
+    if len(words) > _MAX_WORDS:
+        clipped = " ".join(words[:_MAX_WORDS]).rstrip(",") + "..."
+    return clipped
+
+
+def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str]) -> str:
+    prompt = agent_line_prompt(
+        idea=world.idea,
+        setting=world.setting,
+        conflict=world.conflict,
+        beat_label=beat_label,
+        agent=agent,
+        history=history,
+    )
+    return _trim(llm.complete(prompt))
+
+
+def _line(agent: Agent, beat: str, beat_label: str, world: World, history: list[str], debug: bool = False) -> tuple[str, str]:
+    """Return (text, source) where source is 'llm' or 'fallback'."""
+    if llm.is_available():
+        try:
+            text = _llm_line(agent, beat_label, world, history)
+            return text, "llm"
+        except Exception as exc:
+            if debug:
+                print(f"  [LLM ERROR] {agent.name}: {exc}")
+    return _rule_based_line(agent, beat, world.theme), "fallback"
+
+
 def _pick_speakers(agents: list[Agent], n: int, day: int) -> list[Agent]:
     start = day % len(agents)
     rotated = agents[start:] + agents[:start]
     return rotated[:n]
 
 
-def simulate(idea: str, rounds: int = 3) -> list[dict]:
+def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
     world: World = generate_world(idea)
     days = min(rounds, len(_ARC))
     labels = _ARC_LABELS.get(world.theme, _ARC_LABELS["default"])
     log: list[dict] = []
+    history: list[str] = []
 
     for day in range(days):
         arc = _ARC[day]
+        beat_label = labels[day]
         speakers = _pick_speakers(world.agents, arc["speakers"], day)
-        log.append({
-            "day": day + 1,
-            "label": labels[day],
-            "lines": [
-                {"speaker": a.name, "role": a.role, "text": _line(a, arc["beat"], world.theme)}
-                for a in speakers
-            ],
-        })
+        day_lines = []
+        for a in speakers:
+            text, source = _line(a, arc["beat"], beat_label, world, history, debug=debug)
+            day_lines.append({"speaker": a.name, "role": a.role, "text": text, "source": source})
+            history.append(f"{a.name}: {text}")
+        log.append({"day": day + 1, "label": beat_label, "lines": day_lines})
 
     return log

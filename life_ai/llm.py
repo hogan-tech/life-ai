@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def is_available() -> bool:
+    """Return True if at least one supported API key is present."""
+    return bool(os.getenv("ANTHROPIC_API_KEY"))
+
+
 def complete(prompt: str, model: str = "claude-sonnet-4-6") -> str:
     provider = _detect_provider(model)
 

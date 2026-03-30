@@ -9,11 +9,13 @@ from life_ai.simulator import simulate
 _AGENT_COLORS = ["cyan", "magenta", "green", "yellow", "blue"]
 
 _THEME = Theme({
-    "title":  "bold white",
-    "day":    "bold yellow",
-    "beat":   "dim italic",
-    "role":   "dim",
-    "speech": "white",
+    "title":   "bold white",
+    "day":     "bold yellow",
+    "beat":    "dim italic",
+    "role":    "dim",
+    "speech":  "white",
+    "src.llm": "dim green",
+    "src.fallback": "dim red",
 })
 
 app = typer.Typer()
@@ -29,10 +31,10 @@ def _agent_color(name: str, roster: list[str]) -> str:
 def main(
     idea: str = typer.Argument(..., help="The world idea to simulate"),
     rounds: int = typer.Option(3, "--rounds", help="Number of simulation rounds"),
+    debug: bool = typer.Option(False, "--debug", help="Show LLM vs fallback source per line"),
 ) -> None:
-    log = simulate(idea, rounds=rounds)
+    log = simulate(idea, rounds=rounds, debug=debug)
 
-    # Build a stable name → color mapping from day 1
     all_names: list[str] = []
     for day in log:
         for line in day["lines"]:
@@ -50,13 +52,19 @@ def main(
 
         for line in day["lines"]:
             color = _agent_color(line["speaker"], all_names)
-            row = Text("  ")
-            row.append(f"{line['speaker']:<10}", style=f"bold {color}")
-            row.append(f"{line['role']:<20}", style="role")
-            row.append(line["text"], style="speech")
-            console.print(row)
 
-        console.print()
+            # Header: name + role on one line
+            header = Text("  ")
+            header.append(line["speaker"], style=f"bold {color}")
+            header.append(f"  [{line['role']}]", style="role")
+            if debug:
+                src_style = "src.llm" if line["source"] == "llm" else "src.fallback"
+                header.append(f"  {line['source'].upper()}", style=src_style)
+            console.print(header)
+
+            # Text: indented below
+            console.print(Text(f"  {line['text']}", style="speech"))
+            console.print()
 
 
 def run() -> None:
