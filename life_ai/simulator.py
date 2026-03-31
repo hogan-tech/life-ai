@@ -1,4 +1,4 @@
-from life_ai.agent import Agent
+from life_ai.agent import Agent, Memory, RelationshipMap
 from life_ai.world import World, generate_world
 import life_ai.llm as llm
 from life_ai.prompts import agent_line_prompt
@@ -248,7 +248,7 @@ def _trim(text: str) -> str:
     return clipped
 
 
-def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str]) -> str:
+def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str], memory: Memory, rel_map: RelationshipMap) -> str:
     prompt = agent_line_prompt(
         idea=world.idea,
         setting=world.setting,
@@ -256,15 +256,17 @@ def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str]) -
         beat_label=beat_label,
         agent=agent,
         history=history,
+        memory_summary=memory.summary(),
+        relationship_summary=rel_map.summary(),
     )
     return _trim(llm.complete(prompt))
 
 
-def _line(agent: Agent, beat: str, beat_label: str, world: World, history: list[str], debug: bool = False) -> tuple[str, str]:
+def _line(agent: Agent, beat: str, beat_label: str, world: World, history: list[str], memory: Memory, rel_map: RelationshipMap, debug: bool = False) -> tuple[str, str]:
     """Return (text, source) where source is 'llm' or 'fallback'."""
     if llm.is_available():
         try:
-            text = _llm_line(agent, beat_label, world, history)
+            text = _llm_line(agent, beat_label, world, history, memory, rel_map)
             return text, "llm"
         except Exception as exc:
             if debug:
@@ -278,22 +280,72 @@ def _pick_speakers(agents: list[Agent], n: int, day: int) -> list[Agent]:
     return rotated[:n]
 
 
+_CHALLENGE_WORDS = {"wrong", "sabotage", "stop", "against", "refuse", "won't", "can't trust", "betray", "enough", "overboard", "never"}
+_SUPPORT_WORDS   = {"agree", "right", "with you", "trust", "protect", "together", "back you", "same"}
+
+def _detect_signal(text: str) -> str:
+    """Return 'challenge', 'support', or '' based on text content."""
+    lower = text.lower()
+    if any(w in lower for w in _CHALLENGE_WORDS):
+        return "challenge"
+    if any(w in lower for w in _SUPPORT_WORDS):
+        return "support"
+    return ""
+
+
+def _mentioned(name: str, text: str) -> bool:
+    return name.split()[0].lower() in text.lower()
+
+
 def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
     world: World = generate_world(idea)
     days = min(rounds, len(_ARC))
     labels = _ARC_LABELS.get(world.theme, _ARC_LABELS["default"])
     log: list[dict] = []
     history: list[str] = []
+    memories:  dict[str, Memory]          = {a.name: Memory()                       for a in world.agents}
+    rel_maps:  dict[str, RelationshipMap] = {a.name: RelationshipMap.from_agent(a)  for a in world.agents}
 
     for day in range(days):
         arc = _ARC[day]
         beat_label = labels[day]
         speakers = _pick_speakers(world.agents, arc["speakers"], day)
         day_lines = []
+
         for a in speakers:
-            text, source = _line(a, arc["beat"], beat_label, world, history, debug=debug)
+            mem     = memories[a.name]
+            rel_map = rel_maps[a.name]
+            text, source = _line(a, arc["beat"], beat_label, world, history, mem, rel_map, debug=debug)
             day_lines.append({"speaker": a.name, "role": a.role, "text": text, "source": source})
             history.append(f"{a.name}: {text}")
+            mem.record_said(text)
+
+            signal = _detect_signal(text)
+
+            for other in world.agents:
+                if other.name == a.name:
+                    continue
+                memories[other.name].record_heard(a.name, text)
+
+                if not _mentioned(other.name, text):
+                    continue
+
+                if signal == "challenge":
+                    # Both sides see the relationship worsen
+                    rel_maps[a.name].shift(other.name, +1)
+                    rel_maps[other.name].shift(a.name, +1)
+                    memories[other.name].record_tension(f"{a.name} challenged you: {text}")
+                    mem.record_tension(f"You challenged {other.name}: {text}")
+                    if debug:
+                        print(f"  [REL] {a.name}→{other.name} worsened to '{rel_maps[a.name].get(other.name)}'")
+
+                elif signal == "support":
+                    # Both sides see the relationship improve
+                    rel_maps[a.name].shift(other.name, -1)
+                    rel_maps[other.name].shift(a.name, -1)
+                    if debug:
+                        print(f"  [REL] {a.name}→{other.name} improved to '{rel_maps[a.name].get(other.name)}'")
+
         log.append({"day": day + 1, "label": beat_label, "lines": day_lines})
 
     return log
