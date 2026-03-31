@@ -9,11 +9,10 @@ def agent_line_prompt(
     beat_label: str,
     agent: Agent,
     history: list[str],
+    memory_summary: str = "—",
+    relationship_summary: str = "—",
 ) -> str:
     history_block = "\n".join(history[-4:]) if history else "—"
-    rivals = [n for n, r in agent.relationships.items()
-              if any(w in r for w in ("tension", "rival", "distrust", "skeptic"))]
-    rival_note = f"Main rival: {rivals[0]}." if rivals else ""
 
     return f"""You are writing one punchy line for a dramatic story simulation.
 
@@ -24,14 +23,19 @@ Moment: {beat_label}
 Character: {agent.name} | {agent.role}
 Personality: {agent.personality}
 Goal: {agent.goal}
-{rival_note}
 
-Recent:
+Current relationships (may have shifted from earlier):
+{relationship_summary}
+
+Memory (what {agent.name} remembers):
+{memory_summary}
+
+Recent dialogue:
 {history_block}
 
 Write ONE line for {agent.name}. Rules:
 - Max 2 sentences, under 35 words total.
 - Strong action or direct speech. No soft narration.
-- Reflect their personality. Raise the stakes.
+- Reflect their personality, current relationships, and what they remember.
 - No name prefix. No quotes around the whole line.
 - Output the line only."""
