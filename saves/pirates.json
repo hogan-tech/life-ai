@@ -1,0 +1,307 @@
+{
+  "world": {
+    "idea": "Pirates running a tech company",
+    "setting": "The deck smells like salt and bad decisions.",
+    "conflict": "The captain hoards the treasure map; the crew suspects it leads nowhere",
+    "theme": "pirates",
+    "agents": [
+      {
+        "name": "Captain Redd",
+        "role": "Captain, Hiding Something About the Map",
+        "personality": "aggressive, visionary, paranoid",
+        "goal": "Reach the vault at Port Null before anyone learns the map is half-forged",
+        "relationships": {
+          "Bones": "distrustful",
+          "Yara": "leverage",
+          "Finn": "rival"
+        }
+      },
+      {
+        "name": "Bones",
+        "role": "Navigator, Loyal Until Proven Wrong",
+        "personality": "cautious, calculating, loyal",
+        "goal": "Keep the ship off the rocks \u2014 even if the captain steers toward them",
+        "relationships": {
+          "Captain Redd": "distrustful",
+          "Yara": "trusted",
+          "Finn": "neutral"
+        }
+      },
+      {
+        "name": "Yara",
+        "role": "Quartermaster, Already Skimming the Treasury",
+        "personality": "greedy, pragmatic, cunning",
+        "goal": "Control the treasury before anyone realizes how much has already gone missing",
+        "relationships": {
+          "Captain Redd": "leverage",
+          "Bones": "trusted",
+          "Finn": "ally of convenience"
+        }
+      },
+      {
+        "name": "Finn",
+        "role": "Crew Agitator, One Speech Away from Mutiny",
+        "personality": "idealistic, reckless, charismatic",
+        "goal": "Convince the crew they deserve equal share \u2014 and lead the mutiny if they don't get it",
+        "relationships": {
+          "Captain Redd": "rival",
+          "Bones": "neutral",
+          "Yara": "ally of convenience"
+        }
+      }
+    ]
+  },
+  "current_day": 3,
+  "history": [
+    "Captain Redd: Bones, you've been circling that map chest since dawn \u2014 what exactly are you hoping to find, or did someone already promise you a cut you haven't mentioned?",
+    "Bones: Captain Redd, I'm circling it because that's my job \u2014 keeping us off the rocks demands I know where we're headed, not because someone cut me in.",
+    "Bones: Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking.",
+    "Yara: Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+    "Yara: Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it.",
+    "Finn: Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con.",
+    "Captain Redd: Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?"
+  ],
+  "last_speaker": "Captain Redd",
+  "last_line": "Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?",
+  "memories": {
+    "Captain Redd": {
+      "said": [
+        "Bones, you've been circling that map chest since dawn \u2014 what exactly are you hoping to find, or did someone already promise you a cut you haven't mentioned?",
+        "Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?"
+      ],
+      "heard": [
+        "Bones: Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking.",
+        "Yara: Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+        "Yara: Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it.",
+        "Finn: Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con."
+      ],
+      "tensions": []
+    },
+    "Bones": {
+      "said": [
+        "Captain Redd, I'm circling it because that's my job \u2014 keeping us off the rocks demands I know where we're headed, not because someone cut me in.",
+        "Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking."
+      ],
+      "heard": [
+        "Yara: Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+        "Yara: Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it.",
+        "Finn: Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con.",
+        "Captain Redd: Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?"
+      ],
+      "tensions": []
+    },
+    "Yara": {
+      "said": [
+        "Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+        "Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it."
+      ],
+      "heard": [
+        "Bones: Captain Redd, I'm circling it because that's my job \u2014 keeping us off the rocks demands I know where we're headed, not because someone cut me in.",
+        "Bones: Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking.",
+        "Finn: Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con.",
+        "Captain Redd: Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?"
+      ],
+      "tensions": []
+    },
+    "Finn": {
+      "said": [
+        "Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con."
+      ],
+      "heard": [
+        "Bones: Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking.",
+        "Yara: Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+        "Yara: Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it.",
+        "Captain Redd: Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?"
+      ],
+      "tensions": []
+    }
+  },
+  "rel_maps": {
+    "Captain Redd": {
+      "state": {
+        "Bones": "strained",
+        "Yara": "friendly",
+        "Finn": "strained"
+      }
+    },
+    "Bones": {
+      "state": {
+        "Captain Redd": "strained",
+        "Yara": "aligned",
+        "Finn": "neutral"
+      }
+    },
+    "Yara": {
+      "state": {
+        "Captain Redd": "friendly",
+        "Bones": "aligned",
+        "Finn": "neutral"
+      }
+    },
+    "Finn": {
+      "state": {
+        "Captain Redd": "strained",
+        "Bones": "neutral",
+        "Yara": "neutral"
+      }
+    }
+  },
+  "rel_events": {
+    "Captain Redd": {
+      "events": {
+        "Bones": [
+          "you backed Bones up"
+        ],
+        "Yara": [
+          "Yara backed you up"
+        ],
+        "Finn": [
+          "you backed Finn up"
+        ]
+      }
+    },
+    "Bones": {
+      "events": {
+        "Captain Redd": [
+          "Captain Redd backed you up"
+        ],
+        "Yara": [
+          "Yara backed you up"
+        ]
+      }
+    },
+    "Yara": {
+      "events": {
+        "Captain Redd": [
+          "you backed Captain Redd up"
+        ],
+        "Bones": [
+          "you backed Bones up"
+        ]
+      }
+    },
+    "Finn": {
+      "events": {
+        "Captain Redd": [
+          "Captain Redd backed you up"
+        ]
+      }
+    }
+  },
+  "log": [
+    {
+      "day": 1,
+      "label": "The ship sails.",
+      "lines": [
+        {
+          "speaker": "Captain Redd",
+          "role": "Captain, Hiding Something About the Map",
+          "text": "Bones, you've been circling that map chest since dawn \u2014 what exactly are you hoping to find, or did someone already promise you a cut you haven't mentioned?",
+          "source": "llm",
+          "target": "Bones",
+          "intent": "attack",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Bones",
+          "role": "Navigator, Loyal Until Proven Wrong",
+          "text": "Captain Redd, I'm circling it because that's my job \u2014 keeping us off the rocks demands I know where we're headed, not because someone cut me in.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "defend",
+          "response_type": "direct_response"
+        }
+      ],
+      "rel_changes": [
+        {
+          "from": "Captain Redd",
+          "to": "Bones",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "showed agreement"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "label": "The map is questioned.",
+      "lines": [
+        {
+          "speaker": "Bones",
+          "role": "Navigator, Loyal Until Proven Wrong",
+          "text": "Captain Redd, a navigator blind to the destination is a liability, not a crew member \u2014 let me see the map, and I'll keep us sailing instead of sinking.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "persuade",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Yara",
+          "role": "Quartermaster, Already Skimming the Treasury",
+          "text": "Bones, the map's worth nothing if the captain locks us out of the treasury too \u2014 push for the chart, and I'll make sure your share stays untouched.",
+          "source": "llm",
+          "target": "Bones",
+          "intent": "persuade",
+          "response_type": "direct_response"
+        }
+      ],
+      "rel_changes": []
+    },
+    {
+      "day": 3,
+      "label": "Steel is drawn.",
+      "lines": [
+        {
+          "speaker": "Yara",
+          "role": "Quartermaster, Already Skimming the Treasury",
+          "text": "Bones, you're the only one on this deck making sense \u2014 the captain's playing us both, and I'd rather stand with someone who knows it.",
+          "source": "llm",
+          "target": "Bones",
+          "intent": "align",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Finn",
+          "role": "Crew Agitator, One Speech Away from Mutiny",
+          "text": "Captain Redd, you just accused Bones of taking a secret cut \u2014 but you're the one holding a map nobody else has seen. That's not command, that's a con.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "attack",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Captain Redd",
+          "role": "Captain, Hiding Something About the Map",
+          "text": "Finn, you call it a con, but you haven't touched a rope or read a tide since you boarded \u2014 what exactly are you contributing besides doubt?",
+          "source": "llm",
+          "target": "Finn",
+          "intent": "attack",
+          "response_type": "direct_response"
+        }
+      ],
+      "rel_changes": [
+        {
+          "from": "Yara",
+          "to": "Captain Redd",
+          "old": "neutral",
+          "new": "friendly",
+          "reason": "showed agreement"
+        },
+        {
+          "from": "Yara",
+          "to": "Bones",
+          "old": "friendly",
+          "new": "aligned",
+          "reason": "showed agreement"
+        },
+        {
+          "from": "Captain Redd",
+          "to": "Finn",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "showed agreement"
+        }
+      ]
+    }
+  ]
+}
