@@ -1,4 +1,4 @@
-from life_ai.agent import Agent, Memory, RelationshipMap
+from life_ai.agent import Agent, Memory, RelationshipEventLog, RelationshipMap, _REL_SCALE
 from life_ai.world import World, generate_world
 import life_ai.llm as llm
 from life_ai.prompts import agent_line_prompt
@@ -211,15 +211,82 @@ _THEME_OVERRIDES: dict[str, dict[str, dict[str, str]]] = {
 }
 
 
-def _rule_based_line(agent: Agent, beat: str, theme: str) -> str:
+def _worst_relationship(agent: Agent, rel_map: RelationshipMap) -> str:
+    """Return the name of the agent currently viewed most negatively."""
+    worst_idx, worst_name = -1, "someone"
+    for name in agent.relationships:
+        rel = rel_map.get(name)
+        idx = _REL_SCALE.index(rel) if rel in _REL_SCALE else 2
+        if idx > worst_idx:
+            worst_idx = idx
+            worst_name = name
+    return worst_name
+
+
+# ---------------------------------------------------------------------------
+# Target selection + intent system
+# ---------------------------------------------------------------------------
+
+_INTENT_BY_REL: dict[str, list[str]] = {
+    "aligned":     ["align"],
+    "friendly":    ["align", "persuade"],
+    "neutral":     ["persuade"],
+    "strained":    ["defend", "persuade"],
+    "distrustful": ["attack", "threaten"],
+    "hostile":     ["attack", "threaten"],
+}
+
+
+def _select_target(
+    agent: Agent,
+    rel_map: RelationshipMap,
+    all_agents: list[Agent],
+    last_speaker: str | None,
+) -> tuple[str, str]:
+    """Return (target_name, rel_state).
+
+    Prefers the agent with the most extreme relationship (furthest from
+    neutral — either hostile or aligned).  Falls back to the last speaker
+    when all relationships are perfectly neutral.
+    """
+    others = [a.name for a in all_agents if a.name != agent.name]
+    if not others:
+        return "everyone", "neutral"
+
+    # neutral sits at index 2 in _REL_SCALE; distance from it = strength
+    best_score, best_name, best_state = -1, others[0], rel_map.get(others[0])
+    for name in others:
+        state = rel_map.get(name)
+        idx = _REL_SCALE.index(state) if state in _REL_SCALE else 2
+        score = abs(idx - 2)
+        if score > best_score:
+            best_score, best_name, best_state = score, name, state
+
+    # All neutral → fall back to last speaker
+    if best_score == 0 and last_speaker and last_speaker in others:
+        return last_speaker, rel_map.get(last_speaker)
+
+    return best_name, best_state
+
+
+def _select_intent(rel_state: str, step: int = 0) -> str:
+    """Map relationship state to a concrete intent label."""
+    options = _INTENT_BY_REL.get(rel_state, ["persuade"])
+    return options[step % len(options)]
+
+
+def _rule_based_line(agent: Agent, beat: str, theme: str, rel_map: RelationshipMap | None = None) -> str:
     trait = agent.personality.split(",")[0].strip().lower()
     theme_beats = _THEME_OVERRIDES.get(theme, {}).get(beat, {})
     default_beats = _DEFAULT_LINES.get(beat, {})
     template = theme_beats.get(trait) or default_beats.get(trait) or default_beats.get("_default", "{name} acts.")
-    rival = next(
-        (n for n, r in agent.relationships.items() if any(w in r for w in ("tension", "rival", "distrust", "skeptic"))),
-        "someone",
-    )
+    if rel_map is not None:
+        rival = _worst_relationship(agent, rel_map)
+    else:
+        rival = next(
+            (n for n, r in agent.relationships.items() if any(w in r for w in ("tension", "rival", "distrust", "skeptic"))),
+            "someone",
+        )
     return template.format(name=agent.name, goal=agent.goal.lower(), rival=rival)
 
 
@@ -248,7 +315,21 @@ def _trim(text: str) -> str:
     return clipped
 
 
-def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str], memory: Memory, rel_map: RelationshipMap) -> str:
+def _llm_line(
+    agent: Agent,
+    beat_label: str,
+    world: World,
+    history: list[str],
+    memory: Memory,
+    rel_map: RelationshipMap,
+    rel_event_log: RelationshipEventLog,
+    target_name: str,
+    target_rel: str,
+    intent: str,
+    last_speaker: str | None,
+    last_line: str | None,
+    response_type: str,
+) -> str:
     prompt = agent_line_prompt(
         idea=world.idea,
         setting=world.setting,
@@ -258,20 +339,43 @@ def _llm_line(agent: Agent, beat_label: str, world: World, history: list[str], m
         history=history,
         memory_summary=memory.summary(),
         relationship_summary=rel_map.summary(),
+        rel_events_summary=rel_event_log.summary(),
+        target_name=target_name,
+        target_rel=target_rel,
+        intent=intent,
+        last_speaker=last_speaker,
+        last_line=last_line,
+        response_type=response_type,
     )
     return _trim(llm.complete(prompt))
 
 
-def _line(agent: Agent, beat: str, beat_label: str, world: World, history: list[str], memory: Memory, rel_map: RelationshipMap, debug: bool = False) -> tuple[str, str]:
+def _line(
+    agent: Agent,
+    beat: str,
+    beat_label: str,
+    world: World,
+    history: list[str],
+    memory: Memory,
+    rel_map: RelationshipMap,
+    rel_event_log: RelationshipEventLog,
+    target_name: str,
+    target_rel: str,
+    intent: str,
+    last_speaker: str | None,
+    last_line: str | None,
+    response_type: str,
+    debug: bool = False,
+) -> tuple[str, str]:
     """Return (text, source) where source is 'llm' or 'fallback'."""
     if llm.is_available():
         try:
-            text = _llm_line(agent, beat_label, world, history, memory, rel_map)
+            text = _llm_line(agent, beat_label, world, history, memory, rel_map, rel_event_log, target_name, target_rel, intent, last_speaker, last_line, response_type)
             return text, "llm"
         except Exception as exc:
             if debug:
                 print(f"  [LLM ERROR] {agent.name}: {exc}")
-    return _rule_based_line(agent, beat, world.theme), "fallback"
+    return _rule_based_line(agent, beat, world.theme, rel_map), "fallback"
 
 
 def _pick_speakers(agents: list[Agent], n: int, day: int) -> list[Agent]:
@@ -280,17 +384,33 @@ def _pick_speakers(agents: list[Agent], n: int, day: int) -> list[Agent]:
     return rotated[:n]
 
 
-_CHALLENGE_WORDS = {"wrong", "sabotage", "stop", "against", "refuse", "won't", "can't trust", "betray", "enough", "overboard", "never"}
-_SUPPORT_WORDS   = {"agree", "right", "with you", "trust", "protect", "together", "back you", "same"}
+_BETRAY_WORDS = {
+    "betray", "backstab", "sold us", "sold you", "lied to",
+    "used you", "used us", "played us", "manipulated", "double-cross",
+}
+_CHALLENGE_WORDS = {
+    "wrong", "sabotage", "stop", "against", "refuse", "won't", "can't trust",
+    "enough", "overboard", "never", "liar", "lie", "cheat", "back off",
+    "stay out", "you can't", "dare you", "ridiculous", "absurd",
+    "threaten", "not your call", "no one asked", "over my",
+}
+_SUPPORT_WORDS = {
+    "agree", "right", "with you", "trust", "protect", "together", "back you",
+    "same", "support", "help", "exactly", "absolutely", "stand with",
+    "behind you", "believe you", "your side", "stand by",
+}
 
-def _detect_signal(text: str) -> str:
-    """Return 'challenge', 'support', or '' based on text content."""
+
+def _detect_signal(text: str) -> tuple[str, str]:
+    """Return (signal_type, reason). Types: 'betray', 'challenge', 'support', or ''."""
     lower = text.lower()
+    if any(w in lower for w in _BETRAY_WORDS):
+        return "betray", "accused of betrayal"
     if any(w in lower for w in _CHALLENGE_WORDS):
-        return "challenge"
+        return "challenge", "direct challenge"
     if any(w in lower for w in _SUPPORT_WORDS):
-        return "support"
-    return ""
+        return "support", "showed agreement"
+    return "", ""
 
 
 def _mentioned(name: str, text: str) -> bool:
@@ -303,24 +423,41 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
     labels = _ARC_LABELS.get(world.theme, _ARC_LABELS["default"])
     log: list[dict] = []
     history: list[str] = []
-    memories:  dict[str, Memory]          = {a.name: Memory()                       for a in world.agents}
-    rel_maps:  dict[str, RelationshipMap] = {a.name: RelationshipMap.from_agent(a)  for a in world.agents}
+    memories:   dict[str, Memory]               = {a.name: Memory()                       for a in world.agents}
+    rel_maps:   dict[str, RelationshipMap]      = {a.name: RelationshipMap.from_agent(a)  for a in world.agents}
+    rel_events: dict[str, RelationshipEventLog] = {a.name: RelationshipEventLog()          for a in world.agents}
+
+    last_speaker: str | None = None
+    last_line:    str | None = None
 
     for day in range(days):
         arc = _ARC[day]
         beat_label = labels[day]
         speakers = _pick_speakers(world.agents, arc["speakers"], day)
-        day_lines = []
+        day_lines: list[dict] = []
+        day_rel_changes: list[dict] = []
 
         for a in speakers:
-            mem     = memories[a.name]
-            rel_map = rel_maps[a.name]
-            text, source = _line(a, arc["beat"], beat_label, world, history, mem, rel_map, debug=debug)
-            day_lines.append({"speaker": a.name, "role": a.role, "text": text, "source": source})
+            mem       = memories[a.name]
+            rel_map   = rel_maps[a.name]
+            rel_evlog = rel_events[a.name]
+
+            target_name, target_rel = _select_target(a, rel_map, world.agents, last_speaker)
+            intent = _select_intent(target_rel, step=day)
+            response_type = "direct_response" if last_speaker == target_name else "new_move"
+
+            if debug:
+                print(f"\n  [TARGET + INTENT + RESPONSE TYPE]")
+                print(f"  {a.name} → {target_name} ({intent}, {response_type})")
+
+            text, source = _line(a, arc["beat"], beat_label, world, history, mem, rel_map, rel_evlog, target_name, target_rel, intent, last_speaker, last_line, response_type, debug=debug)
+            last_speaker = a.name
+            last_line    = text
+            day_lines.append({"speaker": a.name, "role": a.role, "text": text, "source": source, "target": target_name, "intent": intent, "response_type": response_type})
             history.append(f"{a.name}: {text}")
             mem.record_said(text)
 
-            signal = _detect_signal(text)
+            signal, reason = _detect_signal(text)
 
             for other in world.agents:
                 if other.name == a.name:
@@ -330,22 +467,50 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
                 if not _mentioned(other.name, text):
                     continue
 
-                if signal == "challenge":
-                    # Both sides see the relationship worsen
+                if signal == "betray":
+                    # Sharply negative: moves two steps (e.g. strained → hostile)
+                    old = rel_maps[a.name].get(other.name)
+                    rel_maps[a.name].shift(other.name, +2)
+                    rel_maps[other.name].shift(a.name, +2)
+                    new = rel_maps[a.name].get(other.name)
+                    memories[other.name].record_tension(f"{a.name} accused you of betrayal")
+                    mem.record_tension(f"You accused {other.name} of betrayal")
+                    rel_events[a.name].record(other.name,     f"you accused {other.name} of betrayal")
+                    rel_events[other.name].record(a.name,     f"{a.name} accused you of betrayal")
+                    if old != new:
+                        day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
+                    if debug:
+                        print(f"\n  [RELATIONSHIP UPDATE]")
+                        print(f"  {a.name} → {other.name}: {old} → {new} ({reason})")
+
+                elif signal == "challenge":
+                    old = rel_maps[a.name].get(other.name)
                     rel_maps[a.name].shift(other.name, +1)
                     rel_maps[other.name].shift(a.name, +1)
-                    memories[other.name].record_tension(f"{a.name} challenged you: {text}")
-                    mem.record_tension(f"You challenged {other.name}: {text}")
+                    new = rel_maps[a.name].get(other.name)
+                    memories[other.name].record_tension(f"{a.name} challenged you")
+                    mem.record_tension(f"You challenged {other.name}")
+                    rel_events[a.name].record(other.name,     f"you challenged {other.name} directly")
+                    rel_events[other.name].record(a.name,     f"{a.name} challenged you directly")
+                    if old != new:
+                        day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
                     if debug:
-                        print(f"  [REL] {a.name}→{other.name} worsened to '{rel_maps[a.name].get(other.name)}'")
+                        print(f"\n  [RELATIONSHIP UPDATE]")
+                        print(f"  {a.name} → {other.name}: {old} → {new} ({reason})")
 
                 elif signal == "support":
-                    # Both sides see the relationship improve
+                    old = rel_maps[a.name].get(other.name)
                     rel_maps[a.name].shift(other.name, -1)
                     rel_maps[other.name].shift(a.name, -1)
+                    new = rel_maps[a.name].get(other.name)
+                    rel_events[a.name].record(other.name,     f"you backed {other.name} up")
+                    rel_events[other.name].record(a.name,     f"{a.name} backed you up")
+                    if old != new:
+                        day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
                     if debug:
-                        print(f"  [REL] {a.name}→{other.name} improved to '{rel_maps[a.name].get(other.name)}'")
+                        print(f"\n  [RELATIONSHIP UPDATE]")
+                        print(f"  {a.name} → {other.name}: {old} → {new} ({reason})")
 
-        log.append({"day": day + 1, "label": beat_label, "lines": day_lines})
+        log.append({"day": day + 1, "label": beat_label, "lines": day_lines, "rel_changes": day_rel_changes})
 
     return log

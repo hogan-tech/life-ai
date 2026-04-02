@@ -16,6 +16,7 @@ _THEME = Theme({
     "speech":  "white",
     "src.llm": "dim green",
     "src.fallback": "dim red",
+    "rel":     "dim cyan",
 })
 
 app = typer.Typer()
@@ -64,6 +65,12 @@ def main(
 
             # Text: indented below
             console.print(Text(f"  {line['text']}", style="speech"))
+            console.print()
+
+        if day.get("rel_changes"):
+            for ch in day["rel_changes"]:
+                reason = f"  ({ch['reason']})" if ch.get("reason") else ""
+                console.print(Text(f"  ↳ {ch['from']} → {ch['to']}: {ch['old']} → {ch['new']}{reason}", style="rel"))
             console.print()
 
 
