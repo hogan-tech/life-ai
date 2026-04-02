@@ -6,16 +6,19 @@ life-ai takes a single idea and generates a cast of characters with conflicting 
 
 Not just text generation. **Agents. Roles. Conflict. Story.**
 
-> Current state: MVP → transitioning into LLM-powered multi-agent simulation.
+> Current state: Intent-driven multi-agent simulation with targeted dialogue and conversational memory.
 
 ---
 
 ## What's New
 
+- Intent-driven dialogue — every line has a target and a goal (attack, defend, persuade, align, threaten)
+- Targeted addressing — agents speak directly to a named character, not into the void
+- Conversation memory — agents respond to what was just said when their target spoke last
+- Relationship evolution — relationships shift based on what agents actually do
+- Agent memory — each agent remembers what they said, heard, and what tensions occurred
 - LLM-powered dialogue (Anthropic-ready)
-- Strong prompt constraints → sharper output
-- Post-processing (_trim) for clean, punchy lines
-- Reduced verbosity, more cinematic storytelling
+- Strong prompt constraints → sharper, more cinematic output
 
 ---
 
@@ -37,22 +40,21 @@ life-ai "Pirates running a tech company" --rounds 3 --debug
 ```
 Day 1 — The ship sails.
 
-We sail at first light — Port Null or nothing.
-That heading puts us on the rocks by morning.
-I've already counted the shares. Mine first, questions later.
+Finn, we sail at first light — Port Null or nothing.
+Bones, that heading puts us on the rocks by morning.
 
 Day 2 — The map is questioned.
 
-Show the map or we stop the ship.
-The numbers don’t lie — we’re bleeding.
-You want trust? Start with the truth.
+Finn, you hid the numbers once already — I’m not signing anything you touch.
+Bones, the map is open right now, so name what you actually want.
 
 Day 3 — Steel is drawn.
 
-Ask nicely, or I drop the map overboard.
-Then drop it — we’ll chart our own course.
-Fine. But we count the take together.
+Finn, hand over the ledger now or I take this to the crew and you’re done.
+Bones, go ahead — the crew already knows who’s been skimming.
 ```
+
+Each line targets a specific agent and reflects a concrete intent (attack, threaten, defend, etc.).
 
 ---
 
@@ -88,19 +90,28 @@ python -m life_ai.main "<your idea>" --rounds 5
 
 ---
 
-## Prompt Design (Key Upgrade)
+## Agent Behavior
 
-We moved from vague prompts → constrained prompts:
+Each turn, an agent:
 
-- Max 2 sentences
-- ≤ 35 words
-- Strong action / direct speech only
-- Rival surfaced explicitly
+1. **Selects a target** — the agent with the strongest relationship (most hostile or most aligned). Falls back to the last speaker if all relationships are neutral.
+2. **Picks an intent** — derived from the relationship state:
+   - `hostile` / `distrustful` → `attack` or `threaten`
+   - `strained` → `defend` or `persuade`
+   - `neutral` → `persuade`
+   - `friendly` / `aligned` → `align`
+3. **Determines response type** — if the target spoke last, the agent responds directly to their line (`direct_response`). Otherwise it drives its own agenda (`new_move`).
 
-Result:
-- Less fluff  
-- More tension  
-- Better character voice  
+---
+
+## Prompt Design
+
+Every LLM call enforces:
+
+- **Target addressing** — line must start with the target's name
+- **Intent compliance** — strict behavioral definition for each intent (attack = accuse, threaten = state consequences, etc.)
+- **Specific reference** — if a relationship event exists, the line must name it, not just the feeling
+- Max 2 sentences, ≤ 35 words, direct speech only
 
 ---
 
@@ -156,8 +167,10 @@ life-ai "Ancient Rome with AI agents"
 - [x] LLM-powered dialogue
 - [x] Prompt optimization
 - [x] Output post-processing
-- [ ] Agent memory
-- [ ] Relationship evolution
+- [x] Agent memory
+- [x] Relationship evolution
+- [x] Targeted interaction (target selection + intent system)
+- [x] Conversation memory (direct response vs new move)
 - [ ] Persistent world state
 - [ ] Web UI
 - [ ] API / SDK

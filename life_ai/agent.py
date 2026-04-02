@@ -52,6 +52,27 @@ class RelationshipMap:
 
 
 @dataclass
+class RelationshipEventLog:
+    """Records the cause behind each relationship state — the 'why' behind how an agent feels.
+
+    Stores at most _max_per_target concise, first-person event summaries per target.
+    Kept separate from Memory so relationship reasons stay co-located with relationship state.
+    """
+    _events: dict[str, list[str]] = field(default_factory=dict)
+    _max_per_target: int = 2  # keep the 2 most recent causal events per target
+
+    def record(self, target: str, description: str) -> None:
+        existing = self._events.get(target, [])
+        self._events[target] = (existing + [description])[-self._max_per_target:]
+
+    def summary(self) -> str:
+        """One line per target: most recent event that shaped the relationship."""
+        if not self._events:
+            return "—"
+        return "\n".join(f"  {target}: {evts[-1]}" for target, evts in self._events.items())
+
+
+@dataclass
 class Memory:
     """Lightweight per-agent short-term memory. Bounded to recent rounds only."""
     said: list[str] = field(default_factory=list)      # things this agent said
