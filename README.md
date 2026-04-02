@@ -180,6 +180,28 @@ life-ai "Ancient Rome with AI agents"
 
 ---
 
+## Web UI
+
+Run the simulation in the browser:
+
+```bash
+pip install -r requirements.txt
+uvicorn life_ai.web:app --reload
+```
+
+Open **http://localhost:8000** in your browser.
+
+**What it supports:**
+- Enter an idea, choose rounds, toggle debug mode
+- View results grouped by day — each line shows speaker, role, target, intent, response type
+- Relationship change annotations displayed per day
+- Save the simulation state to a named file
+- Resume any saved simulation with additional rounds
+
+The CLI continues to work unchanged.
+
+---
+
 ## Roadmap
 
 - [x] CLI simulation engine
@@ -195,7 +217,7 @@ life-ai "Ancient Rome with AI agents"
 - [x] Alliance detection (mutual positive + shared enemy)
 - [x] Alliance & betrayal intents (strategic, rule-based)
 - [x] Persistent world state (save / resume runs)
-- [ ] Web UI
+- [x] Web UI
 - [ ] API / SDK
 
 ---

@@ -1,0 +1,409 @@
+{
+  "world": {
+    "idea": "Pirates running a tech company",
+    "setting": "The deck smells like salt and bad decisions.",
+    "conflict": "The captain hoards the treasure map; the crew suspects it leads nowhere",
+    "theme": "pirates",
+    "agents": [
+      {
+        "name": "Captain Redd",
+        "role": "Captain, Hiding Something About the Map",
+        "personality": "aggressive, visionary, paranoid",
+        "goal": "Reach the vault at Port Null before anyone learns the map is half-forged",
+        "relationships": {
+          "Bones": "distrustful",
+          "Yara": "leverage",
+          "Finn": "rival"
+        }
+      },
+      {
+        "name": "Bones",
+        "role": "Navigator, Loyal Until Proven Wrong",
+        "personality": "cautious, calculating, loyal",
+        "goal": "Keep the ship off the rocks \u2014 even if the captain steers toward them",
+        "relationships": {
+          "Captain Redd": "distrustful",
+          "Yara": "trusted",
+          "Finn": "neutral"
+        }
+      },
+      {
+        "name": "Yara",
+        "role": "Quartermaster, Already Skimming the Treasury",
+        "personality": "greedy, pragmatic, cunning",
+        "goal": "Control the treasury before anyone realizes how much has already gone missing",
+        "relationships": {
+          "Captain Redd": "leverage",
+          "Bones": "trusted",
+          "Finn": "ally of convenience"
+        }
+      },
+      {
+        "name": "Finn",
+        "role": "Crew Agitator, One Speech Away from Mutiny",
+        "personality": "idealistic, reckless, charismatic",
+        "goal": "Convince the crew they deserve equal share \u2014 and lead the mutiny if they don't get it",
+        "relationships": {
+          "Captain Redd": "rival",
+          "Bones": "neutral",
+          "Yara": "ally of convenience"
+        }
+      }
+    ]
+  },
+  "current_day": 3,
+  "history": [
+    "Captain Redd: Bones, I don't answer to suspicion dressed up as loyalty \u2014 the map leads where I say it leads, and that's the only truth that matters on this deck.",
+    "Bones: Captain Redd, I'm not dressed in suspicion \u2014 I'm dressed in charts, and the rocks don't care what truth you declare.",
+    "Bones: Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction.",
+    "Yara: Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+    "Yara: Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship.",
+    "Finn: Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with.",
+    "Captain Redd: Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded."
+  ],
+  "last_speaker": "Captain Redd",
+  "last_line": "Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded.",
+  "memories": {
+    "Captain Redd": {
+      "said": [
+        "Bones, I don't answer to suspicion dressed up as loyalty \u2014 the map leads where I say it leads, and that's the only truth that matters on this deck.",
+        "Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded."
+      ],
+      "heard": [
+        "Bones: Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction.",
+        "Yara: Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+        "Yara: Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship.",
+        "Finn: Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with."
+      ],
+      "tensions": [
+        "You challenged Yara"
+      ]
+    },
+    "Bones": {
+      "said": [
+        "Captain Redd, I'm not dressed in suspicion \u2014 I'm dressed in charts, and the rocks don't care what truth you declare.",
+        "Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction."
+      ],
+      "heard": [
+        "Yara: Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+        "Yara: Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship.",
+        "Finn: Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with.",
+        "Captain Redd: Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded."
+      ],
+      "tensions": []
+    },
+    "Yara": {
+      "said": [
+        "Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+        "Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship."
+      ],
+      "heard": [
+        "Bones: Captain Redd, I'm not dressed in suspicion \u2014 I'm dressed in charts, and the rocks don't care what truth you declare.",
+        "Bones: Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction.",
+        "Finn: Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with.",
+        "Captain Redd: Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded."
+      ],
+      "tensions": [
+        "Finn challenged you",
+        "Captain Redd challenged you"
+      ]
+    },
+    "Finn": {
+      "said": [
+        "Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with."
+      ],
+      "heard": [
+        "Bones: Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction.",
+        "Yara: Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+        "Yara: Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship.",
+        "Captain Redd: Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded."
+      ],
+      "tensions": [
+        "You challenged Yara"
+      ]
+    }
+  },
+  "rel_maps": {
+    "Captain Redd": {
+      "state": {
+        "Bones": "neutral",
+        "Yara": "neutral",
+        "Finn": "neutral"
+      },
+      "last_signal": {
+        "Yara": "challenge"
+      },
+      "last_interaction": {
+        "Yara": 2
+      }
+    },
+    "Bones": {
+      "state": {
+        "Captain Redd": "neutral",
+        "Yara": "friendly",
+        "Finn": "neutral"
+      },
+      "last_signal": {
+        "Yara": "support"
+      },
+      "last_interaction": {
+        "Yara": 1
+      }
+    },
+    "Yara": {
+      "state": {
+        "Captain Redd": "neutral",
+        "Bones": "friendly",
+        "Finn": "strained"
+      },
+      "last_signal": {
+        "Captain Redd": "challenge",
+        "Bones": "support",
+        "Finn": "challenge"
+      },
+      "last_interaction": {
+        "Captain Redd": 2,
+        "Bones": 1,
+        "Finn": 2
+      }
+    },
+    "Finn": {
+      "state": {
+        "Captain Redd": "neutral",
+        "Bones": "neutral",
+        "Yara": "strained"
+      },
+      "last_signal": {
+        "Yara": "challenge"
+      },
+      "last_interaction": {
+        "Yara": 2
+      }
+    }
+  },
+  "rel_events": {
+    "Captain Redd": {
+      "events": {
+        "Yara": [
+          "Yara backed you up",
+          "you challenged Yara directly"
+        ]
+      }
+    },
+    "Bones": {
+      "events": {
+        "Yara": [
+          "Yara backed you up"
+        ]
+      }
+    },
+    "Yara": {
+      "events": {
+        "Captain Redd": [
+          "you backed Captain Redd up",
+          "Captain Redd challenged you directly"
+        ],
+        "Bones": [
+          "you backed Bones up"
+        ],
+        "Finn": [
+          "Finn challenged you directly"
+        ]
+      }
+    },
+    "Finn": {
+      "events": {
+        "Yara": [
+          "you challenged Yara directly"
+        ]
+      }
+    }
+  },
+  "log": [
+    {
+      "day": 1,
+      "label": "The ship sails.",
+      "lines": [
+        {
+          "speaker": "Captain Redd",
+          "role": "Captain, Hiding Something About the Map",
+          "text": "Bones, I don't answer to suspicion dressed up as loyalty \u2014 the map leads where I say it leads, and that's the only truth that matters on this deck.",
+          "source": "llm",
+          "target": "Bones",
+          "intent": "defend",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Bones",
+          "role": "Navigator, Loyal Until Proven Wrong",
+          "text": "Captain Redd, I'm not dressed in suspicion \u2014 I'm dressed in charts, and the rocks don't care what truth you declare.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "defend",
+          "response_type": "direct_response"
+        }
+      ],
+      "rel_changes": [
+        {
+          "from": "Captain Redd",
+          "to": "Bones",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Captain Redd",
+          "to": "Finn",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Bones",
+          "to": "Captain Redd",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Bones",
+          "to": "Yara",
+          "old": "friendly",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Yara",
+          "to": "Bones",
+          "old": "friendly",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Finn",
+          "to": "Captain Redd",
+          "old": "distrustful",
+          "new": "strained",
+          "reason": "inactivity decay"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "label": "The map is questioned.",
+      "lines": [
+        {
+          "speaker": "Bones",
+          "role": "Navigator, Loyal Until Proven Wrong",
+          "text": "Captain Redd, a map no one can verify leads a crew no one can control \u2014 let me see it, and I'll turn doubt into direction.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "persuade",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Yara",
+          "role": "Quartermaster, Already Skimming the Treasury",
+          "text": "Bones, a navigator holding the map is just a captain by another name \u2014 push for transparency, not possession, or you'll lose the crew's trust before you ever earn it.",
+          "source": "llm",
+          "target": "Bones",
+          "intent": "persuade",
+          "response_type": "direct_response"
+        }
+      ],
+      "rel_changes": [
+        {
+          "from": "Captain Redd",
+          "to": "Bones",
+          "old": "strained",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Captain Redd",
+          "to": "Finn",
+          "old": "strained",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Bones",
+          "to": "Captain Redd",
+          "old": "strained",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Finn",
+          "to": "Captain Redd",
+          "old": "strained",
+          "new": "neutral",
+          "reason": "inactivity decay"
+        },
+        {
+          "from": "Yara",
+          "to": "Captain Redd",
+          "old": "neutral",
+          "new": "friendly",
+          "reason": "showed agreement"
+        },
+        {
+          "from": "Yara",
+          "to": "Bones",
+          "old": "neutral",
+          "new": "friendly",
+          "reason": "showed agreement"
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "label": "Steel is drawn.",
+      "lines": [
+        {
+          "speaker": "Yara",
+          "role": "Quartermaster, Already Skimming the Treasury",
+          "text": "Captain Redd, I backed you before and I'm backing you now \u2014 your map, your call, your ship.",
+          "source": "llm",
+          "target": "Captain Redd",
+          "intent": "align",
+          "response_type": "new_move"
+        },
+        {
+          "speaker": "Finn",
+          "role": "Crew Agitator, One Speech Away from Mutiny",
+          "text": "Yara, backing a man who won't show his own crew the map isn't loyalty \u2014 it's just a shorter rope to hang yourself with.",
+          "source": "llm",
+          "target": "Yara",
+          "intent": "persuade",
+          "response_type": "direct_response"
+        },
+        {
+          "speaker": "Captain Redd",
+          "role": "Captain, Hiding Something About the Map",
+          "text": "Yara, you backed my call when the deck was already turning \u2014 that kind of spine doesn't go unnoticed, and it won't go unrewarded.",
+          "source": "llm",
+          "target": "Yara",
+          "intent": "align",
+          "response_type": "new_move"
+        }
+      ],
+      "rel_changes": [
+        {
+          "from": "Finn",
+          "to": "Yara",
+          "old": "neutral",
+          "new": "strained",
+          "reason": "direct challenge"
+        },
+        {
+          "from": "Captain Redd",
+          "to": "Yara",
+          "old": "friendly",
+          "new": "neutral",
+          "reason": "direct challenge"
+        }
+      ]
+    }
+  ]
+}

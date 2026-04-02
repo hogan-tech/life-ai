@@ -13,7 +13,14 @@ dependencies = [
     "rich>=13",
     "pydantic>=2",
     "python-dotenv>=1",
+    "anthropic>=0.39.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.9",
 ]
 
 [project.scripts]
 life-ai = "life_ai.main:run"
+
+[tool.setuptools]
+packages = ["life_ai"]

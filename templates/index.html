@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>life-ai</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <h1>life-ai</h1>
+  <p class="subtitle">Multi-agent AI simulation</p>
+
+  <!-- ── Run form ───────────────────────────────────── -->
+  <form class="run-form" method="post" action="/run">
+    <div class="form-group">
+      <label for="idea">Scenario idea</label>
+      <input
+        type="text" id="idea" name="idea" required
+        placeholder="e.g. Silicon Valley startup"
+        value="{{ idea or '' }}"
+      >
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="rounds">Rounds</label>
+        <input type="number" id="rounds" name="rounds" min="1" max="20"
+               value="{{ rounds or 3 }}">
+      </div>
+      <div class="form-group">
+        <label class="inline" for="debug">
+          <input type="checkbox" id="debug" name="debug" value="true"
+                 {% if debug %}checked{% endif %}>
+          Debug mode
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="save_name">Save as (optional)</label>
+      <input type="text" id="save_name" name="save_name"
+             placeholder="e.g. my-startup">
+    </div>
+
+    <button type="submit">Run simulation</button>
+  </form>
+
+  <!-- ── Load saved simulation ─────────────────────── -->
+  {% if saves %}
+  <details class="load-section">
+    <summary>Resume a saved simulation</summary>
+    <form class="load-form" method="post" action="/load">
+      <div class="form-group">
+        <label for="load_name">Saved file</label>
+        <select id="load_name" name="save_name">
+          {% for s in saves %}
+          <option value="{{ s }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="load_rounds">Rounds</label>
+        <input type="number" id="load_rounds" name="rounds" min="1" max="20" value="3">
+      </div>
+      <div class="form-group">
+        <label class="inline" for="load_debug">
+          <input type="checkbox" id="load_debug" name="debug" value="true">
+          Debug
+        </label>
+      </div>
+      <button type="submit">Load &amp; continue</button>
+    </form>
+  </details>
+  {% endif %}
+
+  <!-- ── Save confirmation ──────────────────────────── -->
+  {% if saved_to %}
+  <div class="saved-notice">Saved to saves/{{ saved_to }}.json</div>
+  {% endif %}
+
+  <!-- ── Simulation results ─────────────────────────── -->
+  {% if log %}
+  <div class="results">
+
+    {% if world %}
+    <div class="world-header">
+      <h2>{{ world.idea }}</h2>
+      <div class="world-meta">{{ world.theme }} &middot; {{ world.setting }}</div>
+      <div class="stakes">{{ world.stakes }}</div>
+      <div class="agents">
+        {% for agent in world.agents %}
+        <span class="agent-tag">{{ agent.name }} &mdash; {{ agent.role }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% for day in log %}
+    <div class="day">
+      <div class="day-header">Day {{ day.day }} &mdash; {{ day.label }}</div>
+
+      <div class="lines">
+        {% for line in day.lines %}
+        <div class="line">
+          <div class="line-meta">
+            <span class="speaker">{{ line.speaker }}</span>
+            <span class="role">({{ line.role }})</span>
+            <span class="arrow">→</span>
+            <span class="target">{{ line.target }}</span>
+            <span class="badge intent {{ line.intent }}">{{ line.intent }}</span>
+            <span class="badge response-type">{{ line.response_type }}</span>
+            {% if debug and line.source %}
+            <span class="badge source {{ line.source }}">{{ line.source }}</span>
+            {% endif %}
+          </div>
+          <div class="line-text">{{ line.text }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if day.rel_changes %}
+      <div class="rel-changes">
+        <span class="rel-label">Relationships:</span>
+        {% for c in day.rel_changes %}
+        <span class="rel-change">
+          {{ c['from'] }} → {{ c['to'] }}: {{ c['old'] }} → {{ c['new'] }} ({{ c['reason'] }})
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>
