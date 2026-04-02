@@ -10,17 +10,28 @@ _REL_TONE: dict[str, str] = {
     "hostile":     "be aggressive and cutting — let the animosity show, no softening",
 }
 
+# Human-readable label for each relationship state (used in prompt phrasing).
+_REL_LABEL: dict[str, str] = {
+    "aligned":     "allied with",
+    "friendly":    "friendly with",
+    "neutral":     "neutral toward",
+    "strained":    "strained with",
+    "distrustful": "distrustful of",
+    "hostile":     "hostile toward",
+}
+
 
 def _rel_guidance(relationship_summary: str, rel_events_summary: str) -> str:
-    """Fuse current relationship states with the causal events that produced them.
+    """Build one line per relationship: causal event first, then tone directive.
 
-    Each entry shows: state + tone directive + why (the event that caused it).
-    This gives the LLM both *how to speak* and *what to reference*.
+    Format: You are <label> <name> because: <event(s)> → <tone>
+    Leading with "because" ensures the LLM anchors tone to a specific past event,
+    not just a state label.
     """
     if not relationship_summary or relationship_summary == "—":
         return "  (no established relationships)"
 
-    # Parse events into a target → reason map for fast lookup
+    # Parse events into a target → reason string map
     event_map: dict[str, str] = {}
     if rel_events_summary and rel_events_summary != "—":
         for line in rel_events_summary.strip().splitlines():
@@ -32,16 +43,17 @@ def _rel_guidance(relationship_summary: str, rel_events_summary: str) -> str:
     lines: list[str] = []
     for part in relationship_summary.split(", "):
         if ": " not in part:
-            lines.append(f"  {part}")
+            lines.append(f"  - {part}")
             continue
         name, state = part.split(": ", 1)
         name, state = name.strip(), state.strip()
-        tone = _REL_TONE.get(state, "be neutral")
-        entry = f"  {name}: [{state}] → {tone}"
+        label  = _REL_LABEL.get(state, "neutral toward")
+        tone   = _REL_TONE.get(state, "be neutral")
         reason = event_map.get(name)
         if reason:
-            entry += f"\n    because: {reason}"
-        lines.append(entry)
+            lines.append(f"  - You are {label} {name} because: {reason} → {tone}")
+        else:
+            lines.append(f"  - You are {label} {name} → {tone}")
     return "\n".join(lines)
 
 
@@ -62,8 +74,9 @@ def agent_line_prompt(
     last_speaker: str | None = None,
     last_line: str | None = None,
     response_type: str = "new_move",
+    alliance_context: str = "",
 ) -> str:
-    history_block = "\n".join(history[-4:]) if history else "—"
+    history_block = "\n".join(history[-8:]) if history else "—"
     target_block = target_name if target_name else "the group"
 
     last_speaker_block = last_speaker or "—"
@@ -74,6 +87,8 @@ def agent_line_prompt(
     else:
         response_instruction = "This is a new move — don't react to the last line, drive your own agenda."
 
+    alliance_block = f"\n{alliance_context}\n" if alliance_context else ""
+
     return f"""You are writing one punchy line for a dramatic story simulation.
 
 Setting: {setting}
@@ -83,10 +98,11 @@ Moment: {beat_label}
 Character: {agent.name} | {agent.role}
 Personality: {agent.personality}
 Goal: {agent.goal}
+Strategy: form alliances against shared enemies; betray when the alliance no longer serves you.
 
-Relationships — tone AND reason (use both to shape what you say):
+Relationships — what happened and how to act:
 {_rel_guidance(relationship_summary, rel_events_summary)}
-
+{alliance_block}
 Memory (what {agent.name} remembers):
 {memory_summary}
 
@@ -108,6 +124,8 @@ Intent definitions — you MUST follow the one matching "{intent}" exactly:
   persuade → Try to change {target_block}'s mind. Use reasoning, framing, or pressure.
   align    → Show explicit support or agreement with {target_block}.
   threaten → State or imply consequences if {target_block} does not comply.
+  ally     → Propose working together with {target_block}. Name the shared threat explicitly.
+  betray   → Turn on {target_block}. Name the alliance and make clear you are ending it.
 
 Write ONE line for {agent.name}. Hard rules — no exceptions:
 1. START the line with "{target_block}," — address them first, by name.

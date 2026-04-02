@@ -6,17 +6,19 @@ life-ai takes a single idea and generates a cast of characters with conflicting 
 
 Not just text generation. **Agents. Roles. Conflict. Story.**
 
-> Current state: Intent-driven multi-agent simulation with targeted dialogue and conversational memory.
+> Current state: Multi-agent simulation with alliance formation, betrayal, relationship evolution, and strategic intent.
 
 ---
 
 ## What's New
 
-- Intent-driven dialogue — every line has a target and a goal (attack, defend, persuade, align, threaten)
-- Targeted addressing — agents speak directly to a named character, not into the void
-- Conversation memory — agents respond to what was just said when their target spoke last
-- Relationship evolution — relationships shift based on what agents actually do
-- Agent memory — each agent remembers what they said, heard, and what tensions occurred
+- **Alliance & betrayal** — agents form coalitions against shared enemies and break them when the alliance no longer serves them
+- **Relationship evolution** — relationships shift dynamically along a 6-state scale; repeated attacks escalate, repeated support compounds, inactivity decays toward neutral
+- **Strategic intent** — agents choose `ally` or `betray` based on event history and threat assessment, not just relationship state
+- **Intent-driven dialogue** — every line has a target and a goal (`attack`, `defend`, `persuade`, `align`, `threaten`, `ally`, `betray`)
+- **Targeted addressing** — agents speak directly to a named character, not into the void
+- **Conversation memory** — agents respond to what was just said when their target spoke last
+- **Agent memory** — each agent remembers what they said, heard, and what tensions occurred
 - LLM-powered dialogue (Anthropic-ready)
 - Strong prompt constraints → sharper, more cinematic output
 
@@ -95,12 +97,29 @@ python -m life_ai.main "<your idea>" --rounds 5
 Each turn, an agent:
 
 1. **Selects a target** — the agent with the strongest relationship (most hostile or most aligned). Falls back to the last speaker if all relationships are neutral.
-2. **Picks an intent** — derived from the relationship state:
-   - `hostile` / `distrustful` → `attack` or `threaten`
-   - `strained` → `defend` or `persuade`
-   - `neutral` → `persuade`
-   - `friendly` / `aligned` → `align`
+2. **Picks an intent** — strategic logic runs first, then relationship-based fallback:
+   - **Betray** (priority 1): if allied but there's prior tension with the ally, or the common enemy is no longer a threat
+   - **Ally** (priority 2): if a strong enemy exists and there's a neutral/friendly agent who shares it
+   - **Default** (fallback): derived from relationship state:
+     - `hostile` / `distrustful` → `attack` or `threaten`
+     - `strained` → `defend` or `persuade`
+     - `neutral` → `persuade`
+     - `friendly` / `aligned` → `align`
 3. **Determines response type** — if the target spoke last, the agent responds directly to their line (`direct_response`). Otherwise it drives its own agenda (`new_move`).
+
+### Relationship Scale
+
+```
+aligned → friendly → neutral → strained → distrustful → hostile
+```
+
+Transitions are rule-based:
+- First challenge: +1 step toward hostile
+- Repeated challenge: +2 (escalation)
+- First support: −1 step toward aligned
+- Repeated support: −2 (trust compounds)
+- Betrayal: always +2 (immediate, severe)
+- No interaction for 3+ rounds: drift one step toward neutral (decay)
 
 ---
 
@@ -130,13 +149,14 @@ Every LLM output is cleaned:
 
 ```
 life_ai/
-├── main.py
-├── simulator.py
-├── world.py
-├── agent.py
-├── llm.py
-├── prompts.py
-└── utils.py
+├── main.py        — CLI entry point (Typer)
+├── simulator.py   — Simulation loop, intent system, alliance/betrayal logic, relationship updates
+├── world.py       — World generation and shared scenario context
+├── agent.py       — Agent models, RelationshipMap (with decay + escalation), Memory
+├── llm.py         — LLM provider wrapper (Anthropic / OpenAI)
+├── prompts.py     — Prompt templates with intent, relationship, and coalition context
+├── persistence.py — Save / load simulation state (JSON)
+└── utils.py       — Shared utilities
 ```
 
 ---
@@ -171,7 +191,10 @@ life-ai "Ancient Rome with AI agents"
 - [x] Relationship evolution
 - [x] Targeted interaction (target selection + intent system)
 - [x] Conversation memory (direct response vs new move)
-- [ ] Persistent world state
+- [x] Relationship evolution (dynamic scale with escalation + decay)
+- [x] Alliance detection (mutual positive + shared enemy)
+- [x] Alliance & betrayal intents (strategic, rule-based)
+- [x] Persistent world state (save / resume runs)
 - [ ] Web UI
 - [ ] API / SDK
 

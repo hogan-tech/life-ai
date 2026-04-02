@@ -28,6 +28,10 @@ _REL_SEED: dict[str, str] = {
 class RelationshipMap:
     """Mutable per-agent relationship state. Evolves during simulation."""
     _state: dict[str, str] = field(default_factory=dict)
+    # last signal type this agent sent toward each target ("betray", "challenge", "support", "")
+    _last_signal: dict[str, str] = field(default_factory=dict)
+    # last round index in which this agent interacted with each target
+    _last_interaction: dict[str, int] = field(default_factory=dict)
 
     @classmethod
     def from_agent(cls, agent: "Agent") -> "RelationshipMap":
@@ -45,10 +49,62 @@ class RelationshipMap:
         idx = _REL_SCALE.index(current) if current in _REL_SCALE else 2
         self._state[name] = _REL_SCALE[max(0, min(len(_REL_SCALE) - 1, idx + direction))]
 
+    def apply_signal(self, name: str, signal: str, round_idx: int) -> int:
+        """Apply a signal-driven relationship transition with escalation for repeats.
+
+        Escalation rules:
+          betray   → always +2 (drastic; never softened)
+          challenge → +1 normally; +2 if the last signal toward this target was also negative
+          support  → -1 normally; -2 if the last signal was also support (trust compounds)
+
+        Returns the shift amount actually applied.
+        """
+        last = self._last_signal.get(name, "")
+        if signal == "betray":
+            amount = +2
+        elif signal == "challenge":
+            amount = +2 if last in ("betray", "challenge") else +1
+        elif signal == "support":
+            amount = -2 if last == "support" else -1
+        else:
+            amount = 0
+
+        self.shift(name, amount)
+        self._last_signal[name] = signal
+        self._last_interaction[name] = round_idx
+        return amount
+
+    def decay_toward_neutral(self, name: str) -> bool:
+        """Move one step toward neutral due to inactivity. Returns True if state changed."""
+        current = self._state.get(name, "neutral")
+        idx = _REL_SCALE.index(current) if current in _REL_SCALE else 2
+        if idx == 2:
+            return False
+        direction = +1 if idx < 2 else -1
+        new_state = _REL_SCALE[max(0, min(len(_REL_SCALE) - 1, idx + direction))]
+        if new_state == current:
+            return False
+        self._state[name] = new_state
+        return True
+
     def summary(self) -> str:
         if not self._state:
             return "—"
         return ", ".join(f"{name}: {rel}" for name, rel in self._state.items())
+
+    def to_dict(self) -> dict:
+        return {
+            "state": self._state,
+            "last_signal": self._last_signal,
+            "last_interaction": self._last_interaction,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "RelationshipMap":
+        obj = cls(_state=data.get("state", {}))
+        obj._last_signal = data.get("last_signal", {})
+        obj._last_interaction = {k: int(v) for k, v in data.get("last_interaction", {}).items()}
+        return obj
 
 
 @dataclass
@@ -70,6 +126,13 @@ class RelationshipEventLog:
         if not self._events:
             return "—"
         return "\n".join(f"  {target}: {evts[-1]}" for target, evts in self._events.items())
+
+    def to_dict(self) -> dict:
+        return {"events": self._events}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "RelationshipEventLog":
+        return cls(_events=data.get("events", {}))
 
 
 @dataclass
@@ -98,6 +161,17 @@ class Memory:
         if self.tensions:
             parts.append("Tension: " + " / ".join(self.tensions[-2:]))
         return "\n".join(parts) if parts else "—"
+
+    def to_dict(self) -> dict:
+        return {"said": self.said, "heard": self.heard, "tensions": self.tensions}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Memory":
+        m = cls()
+        m.said = data.get("said", [])
+        m.heard = data.get("heard", [])
+        m.tensions = data.get("tensions", [])
+        return m
 
 
 _TEMPLATES: dict[str, list[str]] = {

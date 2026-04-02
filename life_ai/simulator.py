@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from life_ai.agent import Agent, Memory, RelationshipEventLog, RelationshipMap, _REL_SCALE
 from life_ai.world import World, generate_world
 import life_ai.llm as llm
 from life_ai.prompts import agent_line_prompt
+from life_ai.persistence import SimulationState
 
 # ---------------------------------------------------------------------------
 # Arc structure
@@ -245,25 +248,30 @@ def _select_target(
 ) -> tuple[str, str]:
     """Return (target_name, rel_state).
 
-    Prefers the agent with the most extreme relationship (furthest from
-    neutral — either hostile or aligned).  Falls back to the last speaker
-    when all relationships are perfectly neutral.
+    Primary: pick the agent with the most extreme relationship (furthest from neutral).
+    Tiebreak: prefer the negative side (distrustful > aligned when both score 2).
+    Rationale: agents confront rivals first; alliances are addressed reactively.
+    Fallback to last_speaker when all relationships are neutral.
     """
     others = [a.name for a in all_agents if a.name != agent.name]
     if not others:
         return "everyone", "neutral"
 
-    # neutral sits at index 2 in _REL_SCALE; distance from it = strength
-    best_score, best_name, best_state = -1, others[0], rel_map.get(others[0])
+    # neutral is at index 2; score = (distance_from_neutral, negative_tiebreak)
+    # negative_tiebreak=1 means the relationship is on the hostile side → preferred
+    best_key   = (-1, 0)
+    best_name  = others[0]
+    best_state = rel_map.get(others[0])
+
     for name in others:
         state = rel_map.get(name)
-        idx = _REL_SCALE.index(state) if state in _REL_SCALE else 2
-        score = abs(idx - 2)
-        if score > best_score:
-            best_score, best_name, best_state = score, name, state
+        idx   = _REL_SCALE.index(state) if state in _REL_SCALE else 2
+        key   = (abs(idx - 2), 1 if idx > 2 else 0)
+        if key > best_key:
+            best_key, best_name, best_state = key, name, state
 
     # All neutral → fall back to last speaker
-    if best_score == 0 and last_speaker and last_speaker in others:
+    if best_key[0] == 0 and last_speaker and last_speaker in others:
         return last_speaker, rel_map.get(last_speaker)
 
     return best_name, best_state
@@ -315,6 +323,18 @@ def _trim(text: str) -> str:
     return clipped
 
 
+def _rel_events_summary(rel_event_log: RelationshipEventLog) -> str:
+    """Build an events summary with up to 2 causal reasons per target."""
+    events = rel_event_log._events
+    if not events:
+        return "—"
+    parts = []
+    for target, evts in events.items():
+        recent = evts[-2:]  # at most 2, most recent last
+        parts.append(f"  {target}: {' / '.join(recent)}")
+    return "\n".join(parts) if parts else "—"
+
+
 def _llm_line(
     agent: Agent,
     beat_label: str,
@@ -329,6 +349,7 @@ def _llm_line(
     last_speaker: str | None,
     last_line: str | None,
     response_type: str,
+    alliance_context: str = "",
 ) -> str:
     prompt = agent_line_prompt(
         idea=world.idea,
@@ -339,13 +360,14 @@ def _llm_line(
         history=history,
         memory_summary=memory.summary(),
         relationship_summary=rel_map.summary(),
-        rel_events_summary=rel_event_log.summary(),
+        rel_events_summary=_rel_events_summary(rel_event_log),
         target_name=target_name,
         target_rel=target_rel,
         intent=intent,
         last_speaker=last_speaker,
         last_line=last_line,
         response_type=response_type,
+        alliance_context=alliance_context,
     )
     return _trim(llm.complete(prompt))
 
@@ -365,12 +387,13 @@ def _line(
     last_speaker: str | None,
     last_line: str | None,
     response_type: str,
+    alliance_context: str = "",
     debug: bool = False,
 ) -> tuple[str, str]:
     """Return (text, source) where source is 'llm' or 'fallback'."""
     if llm.is_available():
         try:
-            text = _llm_line(agent, beat_label, world, history, memory, rel_map, rel_event_log, target_name, target_rel, intent, last_speaker, last_line, response_type)
+            text = _llm_line(agent, beat_label, world, history, memory, rel_map, rel_event_log, target_name, target_rel, intent, last_speaker, last_line, response_type, alliance_context)
             return text, "llm"
         except Exception as exc:
             if debug:
@@ -382,6 +405,144 @@ def _pick_speakers(agents: list[Agent], n: int, day: int) -> list[Agent]:
     start = day % len(agents)
     rotated = agents[start:] + agents[:start]
     return rotated[:n]
+
+
+_DECAY_ROUNDS = 3   # rounds of silence before a relationship drifts one step toward neutral
+
+# ---------------------------------------------------------------------------
+# Alliance detection
+# ---------------------------------------------------------------------------
+
+_ALLIANCE_STATES = {"aligned", "friendly"}
+_ENEMY_STATES    = {"distrustful", "hostile"}
+
+
+def _detect_alliances(
+    agents: list[Agent],
+    rel_maps: dict[str, RelationshipMap],
+) -> dict[str, list[tuple[str, str]]]:
+    """Return per-agent list of (ally_name, common_enemy) pairs.
+
+    Alliance condition: mutual positive relationship AND a shared enemy.
+    Each (ally, enemy) pair is stored once per side (A gets (B, C); B gets (A, C)).
+    """
+    result: dict[str, list[tuple[str, str]]] = {a.name: [] for a in agents}
+    names  = [a.name for a in agents]
+    seen: set[tuple[str, str, str]] = set()
+
+    for a_name in names:
+        for b_name in names:
+            if b_name == a_name:
+                continue
+            if rel_maps[a_name].get(b_name) not in _ALLIANCE_STATES:
+                continue
+            if rel_maps[b_name].get(a_name) not in _ALLIANCE_STATES:
+                continue
+            for c_name in names:
+                if c_name in (a_name, b_name):
+                    continue
+                if (rel_maps[a_name].get(c_name) in _ENEMY_STATES and
+                        rel_maps[b_name].get(c_name) in _ENEMY_STATES):
+                    key = (min(a_name, b_name), max(a_name, b_name), c_name)
+                    if key not in seen:
+                        seen.add(key)
+                        result[a_name].append((b_name, c_name))
+                        result[b_name].append((a_name, c_name))
+    return result
+
+
+def _apply_alliance_override(
+    agent_name: str,
+    target_name: str,
+    rel_maps: dict[str, RelationshipMap],
+    alliances: dict[str, list[tuple[str, str]]],
+) -> tuple[str, str]:
+    """If the selected target is an ally, redirect to the most hostile shared enemy instead.
+
+    Returns (target_name, target_rel) — possibly unchanged.
+    """
+    items = alliances.get(agent_name, [])
+    if not items:
+        return target_name, rel_maps[agent_name].get(target_name)
+
+    ally_names  = {ally  for ally,  _ in items}
+    enemy_names = {enemy for _, enemy in items}
+
+    if target_name in ally_names and enemy_names:
+        best_enemy = max(
+            enemy_names,
+            key=lambda e: _REL_SCALE.index(rel_maps[agent_name].get(e))
+            if rel_maps[agent_name].get(e) in _REL_SCALE else 2,
+        )
+        return best_enemy, rel_maps[agent_name].get(best_enemy)
+
+    return target_name, rel_maps[agent_name].get(target_name)
+
+
+def _fmt_alliance_context(
+    agent_name: str,
+    alliances: dict[str, list[tuple[str, str]]],
+) -> str:
+    """Return a formatted coalition block for prompt injection, or '' if none."""
+    items = alliances.get(agent_name, [])
+    if not items:
+        return ""
+    lines = [f"  - Allied with {ally} against {enemy}" for ally, enemy in items]
+    return "Coalition:\n" + "\n".join(lines)
+
+
+def _should_betray(
+    agent_name: str,
+    alliances: dict[str, list[tuple[str, str]]],
+    rel_maps: dict[str, RelationshipMap],
+    rel_events: dict[str, RelationshipEventLog],
+) -> str | None:
+    """Return the name of an ally to betray, or None.
+
+    Betrayal conditions (any one sufficient):
+      A — prior tension with the ally (they challenged / attacked / accused us)
+      B — the common enemy is no longer a real threat (decayed to neutral or positive)
+    """
+    for ally, enemy in alliances.get(agent_name, []):
+        events = rel_events[agent_name]._events.get(ally, [])
+        has_tension = any(
+            any(w in e.lower() for w in ("challenged", "attacked", "accused", "betrayed"))
+            for e in events
+        )
+        weak_enemy = rel_maps[agent_name].get(enemy) not in _ENEMY_STATES
+        if has_tension or weak_enemy:
+            return ally
+    return None
+
+
+def _find_ally_target(
+    agent_name: str,
+    alliances: dict[str, list[tuple[str, str]]],
+    rel_maps: dict[str, RelationshipMap],
+    all_agents: list[Agent],
+) -> tuple[str, str] | None:
+    """Return (potential_ally_name, current_rel) or None.
+
+    Seek alliance with a non-enemy agent who shares at least one of our strong enemies.
+    Skips agents already allied or actively hostile.
+    """
+    names = [a.name for a in all_agents if a.name != agent_name]
+    current_allies = {ally for ally, _ in alliances.get(agent_name, [])}
+
+    agent_enemies = {name for name in names if rel_maps[agent_name].get(name) in _ENEMY_STATES}
+    if not agent_enemies:
+        return None
+
+    for name in names:
+        if name in current_allies:
+            continue
+        candidate_rel = rel_maps[agent_name].get(name)
+        if candidate_rel in _ENEMY_STATES:
+            continue
+        for enemy in agent_enemies:
+            if rel_maps[name].get(enemy) in _ENEMY_STATES:
+                return name, candidate_rel
+    return None
 
 
 _BETRAY_WORDS = {
@@ -417,25 +578,72 @@ def _mentioned(name: str, text: str) -> bool:
     return name.split()[0].lower() in text.lower()
 
 
-def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
-    world: World = generate_world(idea)
-    days = min(rounds, len(_ARC))
-    labels = _ARC_LABELS.get(world.theme, _ARC_LABELS["default"])
-    log: list[dict] = []
-    history: list[str] = []
-    memories:   dict[str, Memory]               = {a.name: Memory()                       for a in world.agents}
-    rel_maps:   dict[str, RelationshipMap]      = {a.name: RelationshipMap.from_agent(a)  for a in world.agents}
-    rel_events: dict[str, RelationshipEventLog] = {a.name: RelationshipEventLog()          for a in world.agents}
+def simulate(
+    idea: str | None = None,
+    rounds: int = 3,
+    debug: bool = False,
+    state: SimulationState | None = None,
+) -> tuple[list[dict], SimulationState]:
+    """Run the simulation and return (new_log, final_state).
 
-    last_speaker: str | None = None
-    last_line:    str | None = None
+    Pass `state` to resume from a saved run.  `idea` is required for fresh runs.
+    """
+    if state is not None:
+        world        = state.world
+        start_day    = state.current_day
+        history      = list(state.history)
+        memories     = state.memories
+        rel_maps     = state.rel_maps
+        rel_events   = state.rel_events
+        last_speaker = state.last_speaker
+        last_line    = state.last_line
+        prior_log    = list(state.log)
+    else:
+        if idea is None:
+            raise ValueError("idea is required when no saved state is loaded")
+        world        = generate_world(idea)
+        start_day    = 0
+        history      = []
+        memories     = {a.name: Memory()                       for a in world.agents}
+        rel_maps     = {a.name: RelationshipMap.from_agent(a)  for a in world.agents}
+        rel_events   = {a.name: RelationshipEventLog()         for a in world.agents}
+        last_speaker = None
+        last_line    = None
+        prior_log    = []
 
-    for day in range(days):
-        arc = _ARC[day]
-        beat_label = labels[day]
-        speakers = _pick_speakers(world.agents, arc["speakers"], day)
-        day_lines: list[dict] = []
+    labels   = _ARC_LABELS.get(world.theme, _ARC_LABELS["default"])
+    new_log:  list[dict] = []
+    end_day  = start_day + rounds
+
+    for day_idx in range(start_day, end_day):
+        arc        = _ARC[day_idx % len(_ARC)]
+        beat_label = labels[day_idx % len(labels)]
+        speakers   = _pick_speakers(world.agents, arc["speakers"], day_idx)
+        day_lines:       list[dict] = []
         day_rel_changes: list[dict] = []
+
+        # --- Decay pass: relationships with no recent interaction drift toward neutral ---
+        for a in world.agents:
+            rel_map = rel_maps[a.name]
+            for other in world.agents:
+                if other.name == a.name:
+                    continue
+                last = rel_map._last_interaction.get(other.name, -_DECAY_ROUNDS - 1)
+                if day_idx - last >= _DECAY_ROUNDS:
+                    old = rel_map.get(other.name)
+                    changed = rel_map.decay_toward_neutral(other.name)
+                    if changed and debug:
+                        new = rel_map.get(other.name)
+                        print(f"  [DECAY] {a.name} → {other.name}: {old} → {new}")
+                    if changed:
+                        day_rel_changes.append({
+                            "from": a.name, "to": other.name,
+                            "old": old, "new": rel_map.get(other.name),
+                            "reason": "inactivity decay",
+                        })
+
+        # Detect alliances once per round — used for target override + prompt context
+        alliances = _detect_alliances(world.agents, rel_maps)
 
         for a in speakers:
             mem       = memories[a.name]
@@ -443,19 +651,76 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
             rel_evlog = rel_events[a.name]
 
             target_name, target_rel = _select_target(a, rel_map, world.agents, last_speaker)
-            intent = _select_intent(target_rel, step=day)
+
+            # Strategic intent: betray > ally-build > default alliance override
+            strategic_intent: str | None = None
+            betray_target = _should_betray(a.name, alliances, rel_maps, rel_events)
+            if betray_target:
+                target_name      = betray_target
+                target_rel       = rel_map.get(betray_target)
+                strategic_intent = "betray"
+            else:
+                ally_result = _find_ally_target(a.name, alliances, rel_maps, world.agents)
+                if ally_result:
+                    target_name, target_rel = ally_result
+                    strategic_intent = "ally"
+
+            if strategic_intent is not None:
+                intent = strategic_intent
+            else:
+                target_name, target_rel = _apply_alliance_override(a.name, target_name, rel_maps, alliances)
+                intent = _select_intent(target_rel, step=day_idx)
+
             response_type = "direct_response" if last_speaker == target_name else "new_move"
+            alliance_ctx  = _fmt_alliance_context(a.name, alliances)
 
             if debug:
                 print(f"\n  [TARGET + INTENT + RESPONSE TYPE]")
                 print(f"  {a.name} → {target_name} ({intent}, {response_type})")
+                if alliance_ctx:
+                    print(f"  [ALLIANCE] {alliance_ctx.replace(chr(10), ' | ')}")
 
-            text, source = _line(a, arc["beat"], beat_label, world, history, mem, rel_map, rel_evlog, target_name, target_rel, intent, last_speaker, last_line, response_type, debug=debug)
+            text, source = _line(
+                a, arc["beat"], beat_label, world, history, mem, rel_map, rel_evlog,
+                target_name, target_rel, intent, last_speaker, last_line, response_type,
+                alliance_context=alliance_ctx, debug=debug,
+            )
             last_speaker = a.name
             last_line    = text
-            day_lines.append({"speaker": a.name, "role": a.role, "text": text, "source": source, "target": target_name, "intent": intent, "response_type": response_type})
+            day_lines.append({
+                "speaker": a.name, "role": a.role, "text": text, "source": source,
+                "target": target_name, "intent": intent, "response_type": response_type,
+            })
             history.append(f"{a.name}: {text}")
             mem.record_said(text)
+
+            # --- Guaranteed updates for strategic intents (not keyword-dependent) ---
+            agent_names_set = {ag.name for ag in world.agents}
+            if intent == "betray" and target_name in agent_names_set:
+                old = rel_maps[a.name].get(target_name)
+                rel_maps[a.name].apply_signal(target_name, "betray", day_idx)
+                rel_maps[target_name].apply_signal(a.name, "betray", day_idx)
+                new = rel_maps[a.name].get(target_name)
+                mem.record_tension(f"You betrayed {target_name}")
+                memories[target_name].record_tension(f"{a.name} betrayed you")
+                rel_events[a.name].record(target_name,  f"you betrayed {target_name}")
+                rel_events[target_name].record(a.name,  f"{a.name} betrayed you")
+                if old != new:
+                    day_rel_changes.append({"from": a.name, "to": target_name, "old": old, "new": new, "reason": "intentional betrayal"})
+                if debug:
+                    print(f"\n  [BETRAYAL] {a.name} → {target_name}: {old} → {new}")
+
+            elif intent == "ally" and target_name in agent_names_set:
+                old = rel_maps[a.name].get(target_name)
+                rel_maps[a.name].apply_signal(target_name, "support", day_idx)
+                rel_maps[target_name].apply_signal(a.name, "support", day_idx)
+                new = rel_maps[a.name].get(target_name)
+                rel_events[a.name].record(target_name,  f"you sought alliance with {target_name}")
+                rel_events[target_name].record(a.name,  f"{a.name} sought alliance with you")
+                if old != new:
+                    day_rel_changes.append({"from": a.name, "to": target_name, "old": old, "new": new, "reason": "alliance building"})
+                if debug:
+                    print(f"\n  [ALLY BUILD] {a.name} → {target_name}: {old} → {new}")
 
             signal, reason = _detect_signal(text)
 
@@ -468,15 +733,14 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
                     continue
 
                 if signal == "betray":
-                    # Sharply negative: moves two steps (e.g. strained → hostile)
                     old = rel_maps[a.name].get(other.name)
-                    rel_maps[a.name].shift(other.name, +2)
-                    rel_maps[other.name].shift(a.name, +2)
+                    rel_maps[a.name].apply_signal(other.name, "betray", day_idx)
+                    rel_maps[other.name].apply_signal(a.name, "betray", day_idx)
                     new = rel_maps[a.name].get(other.name)
                     memories[other.name].record_tension(f"{a.name} accused you of betrayal")
                     mem.record_tension(f"You accused {other.name} of betrayal")
-                    rel_events[a.name].record(other.name,     f"you accused {other.name} of betrayal")
-                    rel_events[other.name].record(a.name,     f"{a.name} accused you of betrayal")
+                    rel_events[a.name].record(other.name,  f"you accused {other.name} of betrayal")
+                    rel_events[other.name].record(a.name,  f"{a.name} accused you of betrayal")
                     if old != new:
                         day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
                     if debug:
@@ -485,13 +749,13 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
 
                 elif signal == "challenge":
                     old = rel_maps[a.name].get(other.name)
-                    rel_maps[a.name].shift(other.name, +1)
-                    rel_maps[other.name].shift(a.name, +1)
+                    rel_maps[a.name].apply_signal(other.name, "challenge", day_idx)
+                    rel_maps[other.name].apply_signal(a.name, "challenge", day_idx)
                     new = rel_maps[a.name].get(other.name)
                     memories[other.name].record_tension(f"{a.name} challenged you")
                     mem.record_tension(f"You challenged {other.name}")
-                    rel_events[a.name].record(other.name,     f"you challenged {other.name} directly")
-                    rel_events[other.name].record(a.name,     f"{a.name} challenged you directly")
+                    rel_events[a.name].record(other.name,  f"you challenged {other.name} directly")
+                    rel_events[other.name].record(a.name,  f"{a.name} challenged you directly")
                     if old != new:
                         day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
                     if debug:
@@ -500,17 +764,28 @@ def simulate(idea: str, rounds: int = 3, debug: bool = False) -> list[dict]:
 
                 elif signal == "support":
                     old = rel_maps[a.name].get(other.name)
-                    rel_maps[a.name].shift(other.name, -1)
-                    rel_maps[other.name].shift(a.name, -1)
+                    rel_maps[a.name].apply_signal(other.name, "support", day_idx)
+                    rel_maps[other.name].apply_signal(a.name, "support", day_idx)
                     new = rel_maps[a.name].get(other.name)
-                    rel_events[a.name].record(other.name,     f"you backed {other.name} up")
-                    rel_events[other.name].record(a.name,     f"{a.name} backed you up")
+                    rel_events[a.name].record(other.name,  f"you backed {other.name} up")
+                    rel_events[other.name].record(a.name,  f"{a.name} backed you up")
                     if old != new:
                         day_rel_changes.append({"from": a.name, "to": other.name, "old": old, "new": new, "reason": reason})
                     if debug:
                         print(f"\n  [RELATIONSHIP UPDATE]")
                         print(f"  {a.name} → {other.name}: {old} → {new} ({reason})")
 
-        log.append({"day": day + 1, "label": beat_label, "lines": day_lines, "rel_changes": day_rel_changes})
+        new_log.append({"day": day_idx + 1, "label": beat_label, "lines": day_lines, "rel_changes": day_rel_changes})
 
-    return log
+    final_state = SimulationState(
+        world=world,
+        current_day=end_day,
+        history=history,
+        last_speaker=last_speaker,
+        last_line=last_line,
+        memories=memories,
+        rel_maps=rel_maps,
+        rel_events=rel_events,
+        log=prior_log + new_log,
+    )
+    return new_log, final_state

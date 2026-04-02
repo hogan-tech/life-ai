@@ -1,3 +1,5 @@
+from typing import Optional
+
 import typer
 from rich.console import Console
 from rich.rule import Rule
@@ -5,6 +7,7 @@ from rich.text import Text
 from rich.theme import Theme
 
 from life_ai.simulator import simulate
+from life_ai.persistence import load_state, save_state
 
 _AGENT_COLORS = ["cyan", "magenta", "green", "yellow", "blue"]
 
@@ -30,11 +33,36 @@ def _agent_color(name: str, roster: list[str]) -> str:
 
 @app.command()
 def main(
-    idea: str = typer.Argument(..., help="The world idea to simulate"),
+    idea: Optional[str] = typer.Argument(None, help="The world idea to simulate"),
     rounds: int = typer.Option(3, "--rounds", help="Number of simulation rounds"),
     debug: bool = typer.Option(False, "--debug", help="Show LLM vs fallback source per line"),
+    save: Optional[str] = typer.Option(None, "--save", help="Save simulation state to this file after running"),
+    load: Optional[str] = typer.Option(None, "--load", help="Load and resume a previously saved simulation"),
 ) -> None:
-    log = simulate(idea, rounds=rounds, debug=debug)
+    if load and idea:
+        typer.echo("Error: cannot use both an idea and --load. Use one or the other.", err=True)
+        raise typer.Exit(code=1)
+    if not load and not idea:
+        typer.echo("Error: provide an idea or use --load to resume a saved simulation.", err=True)
+        raise typer.Exit(code=1)
+
+    loaded_state = None
+    if load:
+        try:
+            loaded_state = load_state(load)
+        except (FileNotFoundError, ValueError) as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1)
+
+    log, final_state = simulate(idea, rounds=rounds, debug=debug, state=loaded_state)
+
+    if save:
+        try:
+            save_state(final_state, save)
+        except OSError as exc:
+            typer.echo(f"Warning: could not save state: {exc}", err=True)
+
+    display_idea = final_state.world.idea
 
     all_names: list[str] = []
     for day in log:
@@ -43,7 +71,11 @@ def main(
                 all_names.append(line["speaker"])
 
     console.print()
-    console.print(f"[title]  {idea}[/title]")
+    console.print(f"[title]  {display_idea}[/title]")
+    if load:
+        console.print(f"[dim]  Resumed from {load} (day {loaded_state.current_day + 1})[/dim]")
+    if save:
+        console.print(f"[dim]  State saved → {save}[/dim]")
     console.print()
 
     for day in log:
