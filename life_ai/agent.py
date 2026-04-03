@@ -6,6 +6,8 @@ _REL_SCALE = ["aligned", "friendly", "neutral", "strained", "distrustful", "host
 
 # Map existing relationship labels onto scale positions so initial state is preserved.
 _REL_SEED: dict[str, str] = {
+    "aligned":              "aligned",
+    "friendly":             "friendly",
     "trusted":              "friendly",
     "trusted ally":         "friendly",
     "ally":                 "friendly",
@@ -17,7 +19,9 @@ _REL_SEED: dict[str, str] = {
     "co-founder tension":   "strained",
     "pressure":             "strained",
     "skeptical":            "strained",
+    "strained":             "strained",
     "distrustful":          "distrustful",
+    "hostile":              "hostile",
     "rivalry":              "distrustful",
     "rival":                "distrustful",
     "tension":              "distrustful",
