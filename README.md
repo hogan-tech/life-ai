@@ -202,6 +202,69 @@ The CLI continues to work unchanged.
 
 ---
 
+## API / SDK
+
+### Python SDK
+
+```python
+from life_ai.sdk import run_simulation, resume_simulation
+
+# Fresh run — returns a JSON-serializable dict
+result = run_simulation("Silicon Valley startup", rounds=3, save="demo")
+print(result["world"]["idea"])          # "Silicon Valley startup"
+print([a["name"] for a in result["agents"]])
+for day in result["log"]:
+    for line in day["lines"]:
+        print(f"{line['speaker']} → {line['target']} [{line['intent']}]: {line['text']}")
+
+# Resume a saved run
+result2 = resume_simulation("demo", rounds=2)
+print(result2["current_day"])           # 5  (3 + 2)
+```
+
+**Response shape** (both functions return the same structure):
+
+```json
+{
+  "world": { "idea": "...", "setting": "...", "conflict": "...", "theme": "..." },
+  "agents": [{ "name": "...", "role": "...", "personality": "...", "goal": "..." }],
+  "relationships": { "AgentA": { "AgentB": "hostile", "AgentC": "friendly" } },
+  "current_day": 3,
+  "log": [ { "day": 1, "label": "...", "lines": [...], "rel_changes": [...] } ]
+}
+```
+
+A full working demo is in `examples/sdk_demo.py`.
+
+### HTTP API
+
+Start the server:
+
+```bash
+uvicorn life_ai.web:app --reload
+```
+
+**`POST /api/run`** — start a fresh simulation:
+
+```bash
+curl -s -X POST http://localhost:8000/api/run \
+  -H "Content-Type: application/json" \
+  -d '{"idea": "pirate crew mutiny", "rounds": 3, "save": "pirates1"}' | jq .
+```
+
+**`POST /api/load`** — resume a saved simulation:
+
+```bash
+curl -s -X POST http://localhost:8000/api/load \
+  -H "Content-Type: application/json" \
+  -d '{"load": "pirates1", "rounds": 2}' | jq .
+```
+
+Both endpoints return the same JSON structure shown above.  
+Interactive schema is available at **http://localhost:8000/docs**.
+
+---
+
 ## Roadmap
 
 - [x] CLI simulation engine
@@ -218,7 +281,7 @@ The CLI continues to work unchanged.
 - [x] Alliance & betrayal intents (strategic, rule-based)
 - [x] Persistent world state (save / resume runs)
 - [x] Web UI
-- [ ] API / SDK
+- [x] API / SDK
 
 ---
 
