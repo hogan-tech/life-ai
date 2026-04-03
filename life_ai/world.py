@@ -1,6 +1,9 @@
+import json
+
 from pydantic import BaseModel
 
 from life_ai.agent import Agent
+import life_ai.llm as llm
 
 
 class World(BaseModel):
@@ -184,11 +187,19 @@ _WORLDS = [
 ]
 
 
-def generate_world(idea: str) -> World:
-    lowered = idea.lower()
-    for keywords, factory in _WORLDS:
-        if any(kw in lowered for kw in keywords):
-            return factory(idea)
+_PERSONALITY_TRAITS = {
+    "aggressive",
+    "cautious",
+    "visionary",
+    "perfectionist",
+    "pragmatic",
+    "idealistic",
+    "greedy",
+    "diplomatic",
+}
+
+
+def _default_world(idea: str) -> World:
     return World(
         idea=idea, theme="default",
         setting=f"A world shaped by the idea: {idea}",
@@ -220,3 +231,131 @@ def generate_world(idea: str) -> World:
             ),
         ],
     )
+
+
+def _extract_json(text: str) -> dict:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        cleaned = "\n".join(lines).strip()
+    return json.loads(cleaned)
+
+
+def _llm_world(idea: str) -> World:
+    prompt = f"""You are generating a simulation world for an AI multi-agent drama engine.
+Return ONLY valid JSON. No markdown. No prose.
+
+Output schema:
+{{
+  "setting": "string",
+  "conflict": "string",
+  "theme": "string",
+  "agents": [
+    {{
+      "name": "string",
+      "role": "string",
+      "personality": "string",
+      "goal": "string"
+    }}
+  ],
+  "relationships": {{
+    "Agent Name": {{
+      "Other Agent Name": "relationship_label"
+    }}
+  }}
+}}
+
+Rules:
+- Idea: "{idea}"
+- Exactly 4 agents.
+- Agents must be unique by name.
+- Personality must start with one of:
+  aggressive, cautious, visionary, perfectionist, pragmatic, idealistic, greedy, diplomatic
+- Include relationship entries for each agent toward each other agent (3 targets each).
+- At least one relationship value must be exactly "hostile" or "distrustful".
+- Relationships may be asymmetric.
+- Keep labels concise (examples: friendly, neutral, strained, distrustful, hostile, rival, ally).
+"""
+    data = _extract_json(llm.complete(prompt, max_tokens=1024))
+    agents_raw = data.get("agents")
+    if not isinstance(agents_raw, list) or len(agents_raw) != 4:
+        raise ValueError("LLM world must include exactly 4 agents")
+
+    names = [str(a.get("name", "")).strip() for a in agents_raw if isinstance(a, dict)]
+    if len(names) != 4 or any(not n for n in names) or len(set(names)) != 4:
+        raise ValueError("LLM world must provide 4 unique non-empty agent names")
+
+    rel_raw = data.get("relationships")
+    if not isinstance(rel_raw, dict):
+        raise ValueError("LLM world must include relationships object")
+
+    hostile_or_distrustful_found = False
+    agents: list[Agent] = []
+    for agent_data, name in zip(agents_raw, names):
+        role = str(agent_data.get("role", "")).strip()
+        personality = str(agent_data.get("personality", "")).strip()
+        goal = str(agent_data.get("goal", "")).strip()
+        if not role or not personality or not goal:
+            raise ValueError("Each agent needs non-empty role, personality, and goal")
+        lead_trait = personality.split(",")[0].strip().lower()
+        if lead_trait not in _PERSONALITY_TRAITS:
+            raise ValueError(f"Invalid lead personality trait: {lead_trait}")
+
+        outgoing = rel_raw.get(name)
+        if not isinstance(outgoing, dict):
+            raise ValueError(f"Missing relationships for agent: {name}")
+
+        relationships: dict[str, str] = {}
+        for other_name in names:
+            if other_name == name:
+                continue
+            rel_value = str(outgoing.get(other_name, "")).strip().lower()
+            if not rel_value:
+                raise ValueError(f"Missing relationship from {name} to {other_name}")
+            if rel_value in {"hostile", "distrustful"}:
+                hostile_or_distrustful_found = True
+            relationships[other_name] = rel_value
+
+        agents.append(
+            Agent(
+                name=name,
+                role=role,
+                personality=personality,
+                goal=goal,
+                relationships=relationships,
+            )
+        )
+
+    if not hostile_or_distrustful_found:
+        raise ValueError("At least one relationship must be hostile or distrustful")
+
+    setting = str(data.get("setting", "")).strip()
+    conflict = str(data.get("conflict", "")).strip()
+    theme = str(data.get("theme", "")).strip() or "default"
+    if not setting or not conflict:
+        raise ValueError("LLM world must include non-empty setting and conflict")
+
+    return World(
+        idea=idea,
+        setting=setting,
+        conflict=conflict,
+        theme=theme,
+        agents=agents,
+    )
+
+
+def generate_world(idea: str) -> World:
+    lowered = idea.lower()
+    for keywords, factory in _WORLDS:
+        if any(kw in lowered for kw in keywords):
+            return factory(idea)
+    if llm.is_available():
+        try:
+            return _llm_world(idea)
+        except Exception as exc:
+            print(f"LLM world generation failed ({exc}), using default template")
+    return _default_world(idea)
