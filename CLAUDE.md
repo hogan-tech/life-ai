@@ -35,7 +35,7 @@ Then fill in API keys if LLM features are enabled.
 All core logic lives in `life_ai/`.
 
 * **`main.py`** — Typer CLI entry point
-* **`simulator.py`** — Simulation loop, turn orchestration, target selection, intent system, relationship updates
+* **`simulator.py`** — Simulation loop, turn neoxration, target selection, intent system, relationship updates
 * **`world.py`** — World generation and shared scenario context
 * **`agent.py`** — Agent models, `RelationshipMap`, `RelationshipEventLog`, `Memory`
 * **`llm.py`** — LLM provider wrapper for Anthropic/OpenAI
